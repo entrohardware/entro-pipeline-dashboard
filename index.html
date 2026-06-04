@@ -333,7 +333,7 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
         </div>
         <div class="m-sect">
           <div class="sect-ttl">Pipeline Stage Names</div>
-          <div class="info-note">HubSpot may return deal stages as internal IDs (e.g. <code>123456789</code>) rather than names. If your pipeline data shows as empty after connecting, go to HubSpot → CRM → Deals → Board view, open browser DevTools → Network, and find a deals API call to see the stage IDs being used. Paste those IDs here instead of names. Alternatively check Settings → Properties → Deal Stages for the internal names.</div>
+          <div class="info-note">These are pre-configured with your HubSpot Sales pipeline stage IDs. You do not need to change these unless your pipeline changes in HubSpot.</div>
           <div id="pipeline-id-rows"></div>
         </div>
       </div>
@@ -703,7 +703,8 @@ function switchTab(name,btn){document.querySelectorAll('.tab-btn').forEach(b=>b.
 function populateSettings(){
   const tok=document.getElementById('hs-token-input');if(cfg.hsToken)tok.value=cfg.hsToken;
   const pc=document.getElementById('pipeline-id-rows');pc.innerHTML='';
-  cfg.pipelineStages.forEach((s,i)=>{pc.innerHTML+=`<div class="s-row"><span class="s-lbl">Stage ${i+1}</span><input class="s-inp wide" data-pi="${i}" value="${s}"></div>`;});
+  const stageLabels={'2612273595':'Prospecting Lead','2367434189':'Intro Discovery (SQL)','2367434190':'Deep Discovery','2367434191':'Prepare Schedule','2367434192':'Stakeholder Management','2369507813':'Tendering','2369507814':'Live Project','2369507815':'Negotiation','2367434193':'Project Handover/Won','2367434194':'Closed Lost'};
+  cfg.pipelineStages.forEach((s,i)=>{pc.innerHTML+=`<div class="s-row"><span class="s-lbl">${stageLabels[s]||'Stage '+(i+1)}</span><input class="s-inp wide" data-pi="${i}" value="${s}" style="color:var(--text3);font-size:11px;"></div>`;});
   const dc=document.getElementById('deep-target-rows');dc.innerHTML='';
   ALL_KEYS.forEach(stk=>{
     dc.innerHTML+=`<div style="font-size:10px;font-weight:700;color:var(--text2);margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.07em">${stk}</div>`;
