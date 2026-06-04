@@ -376,11 +376,11 @@ const NOW=new Date(2026,5,4);
 
 const DEF={
   hsToken:'',
-  pipelineStages:['Prospecting Lead','Intro Discovery (SQL)','Deep Discovery','Prepare Schedule','Stakeholder Management','Tendering','Live Project','Negotiation'],
+  pipelineStages:['2612273595','2367434189','2367434190','2367434191','2367434192','2369507813','2369507814','2369507815'],
   ownerMap:{'Patrick Goldsmith':'VIC','Daniel Marrone':'NSW','Leigan Paterson':'QLD','Andrew McKay':'SA','Quincy Smith':'WA'},
   deepTargets:{week:{ALL:2,VIC:1,NSW:1,QLD:1,SA:1,WA:0,TAS:0,ACT:0,NT:0},month:{ALL:8,VIC:2,NSW:2,QLD:2,SA:1,WA:1,TAS:0,ACT:0,NT:0},quarter:{ALL:24,VIC:6,NSW:6,QLD:6,SA:3,WA:2,TAS:1,ACT:0,NT:0},ytd:{ALL:48,VIC:12,NSW:12,QLD:12,SA:6,WA:4,TAS:1,ACT:1,NT:0}},
   specTarget:{ALL:40,VIC:40,NSW:40,QLD:40,SA:40,WA:30,TAS:30,ACT:30,NT:20},
-  stageTargets:{'Prospecting Lead':2000000,'Intro Discovery (SQL)':3000000,'Deep Discovery':1500000,'Prepare Schedule':500000,'Stakeholder Management':800000,'Tendering':5000000,'Live Project':8000000,'Negotiation':1000000},
+  stageTargets:{'2612273595':2000000,'2367434189':3000000,'2367434190':1500000,'2367434191':500000,'2367434192':800000,'2369507813':5000000,'2369507814':8000000,'2369507815':1000000},
   forecastTargets:{},
   ytd2025:{spec:{ALL:32,VIC:35,NSW:30,QLD:28,SA:38,WA:25,TAS:20,ACT:22,NT:15},strike:{ALL:22,VIC:24,NSW:20,QLD:18,SA:28,WA:18,TAS:15,ACT:16,NT:12},won:{ALL:18.5,VIC:6.2,NSW:4.8,QLD:4.1,SA:2.1,WA:0.8,TAS:0.3,ACT:0.2,NT:0}}
 };
@@ -444,6 +444,7 @@ async function fetchHubSpot(){
     while(pages<20){
       const url=new URL('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals');
       url.searchParams.set('limit','100');url.searchParams.set('properties','dealname,amount,dealstage,hubspot_owner_id,closedate,estimated_close_date,specification_status__c,specification_status,hs_deal_stage_probability,address,sector,project_type,deal_source');
+      url.searchParams.set('filterGroups', JSON.stringify([{filters:[{propertyName:'pipeline',operator:'EQ',value:'1412380097'}]}]));
       if(after)url.searchParams.set('after',after);
       const r=await fetch(url.toString(),{headers:{'Authorization':'Bearer '+cfg.hsToken}});
       if(!r.ok)throw new Error('HubSpot '+r.status);
@@ -478,6 +479,18 @@ async function fetchAllData(){await fetchHubSpot();renderAll();}
 
 function renderAll(){const deals=hsDeals.filter(sfilt);renderPipeline(deals);renderForecast(deals);renderDeepDisc();renderSpecForecast(deals);renderSpecRev(deals);renderStrike(deals);}
 
+const STAGE_LABELS={
+  '2612273595':'Prospecting Lead',
+  '2367434189':'Intro Discovery (SQL)',
+  '2367434190':'Deep Discovery',
+  '2367434191':'Prepare Schedule',
+  '2367434192':'Stakeholder Management',
+  '2369507813':'Tendering',
+  '2369507814':'Live Project',
+  '2369507815':'Negotiation',
+  '2367434193':'Project Handover/Won',
+  '2367434194':'Closed Lost'
+};
 function renderPipeline(deals){
   const sd={};cfg.pipelineStages.forEach(s=>sd[s]=0);
   deals.forEach(d=>{if(sd.hasOwnProperty(d.stage))sd[d.stage]+=d.amount;});
@@ -487,11 +500,11 @@ function renderPipeline(deals){
   let h='<div class="stage-list" style="flex:1;min-height:0;display:flex;flex-direction:column;">';
   cfg.pipelineStages.forEach(s=>{
     const v=sd[s]||0,tgt=cfg.stageTargets[s]||0,pct=Math.min(100,(v/mx)*100),ot=tgt>0&&v>=tgt;
-    h+=`<div class="stage-row"><div class="s-name" title="${s}">${s}</div><div><div class="s-track"><div class="s-fill${ot?' ot':''}" style="width:${pct.toFixed(1)}%"></div></div>${tgt>0?`<div style="font-size:9px;color:var(--text4);text-align:right;margin-top:1px;font-family:'ABCFavorit',sans-serif">T: ${fmt$(tgt)}</div>`:''}</div><div class="s-amt">${fmt$(v)}</div></div>`;
+    h+=`<div class="stage-row"><div class="s-name" title="${STAGE_LABELS[s]||s}">${STAGE_LABELS[s]||s}</div><div><div class="s-track"><div class="s-fill${ot?' ot':''}" style="width:${pct.toFixed(1)}%"></div></div>${tgt>0?`<div style="font-size:9px;color:var(--text4);text-align:right;margin-top:1px;font-family:'ABCFavorit',sans-serif">T: ${fmt$(tgt)}</div>`:''}</div><div class="s-amt">${fmt$(v)}</div></div>`;
   });
   h+='</div>';
-  const won=deals.filter(d=>d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
-  const lost=deals.filter(d=>d.stage==='Closed Lost').reduce((a,d)=>a+d.amount,0);
+  const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
+  const lost=deals.filter(d=>d.stage==='2367434194'||d.stage==='Closed Lost').reduce((a,d)=>a+d.amount,0);
   if(won>0||lost>0)h+=`<div class="wl-row"><div class="wl-chip won"><div class="wl-lbl">Won YTD</div><div class="wl-num">${fmt$(won)}</div></div><div class="wl-chip lost"><div class="wl-lbl">Lost YTD</div><div class="wl-num">${fmt$(lost)}</div></div></div>`;
   document.getElementById('pipeline-content').innerHTML=h;
   // Trigger row height equalisation after render
@@ -644,6 +657,12 @@ function drawGauge(id,value,max,sublabel,yoy,showPct){
     '<div class="gauge-meta">Target <span class="g-chip">'+(showPct?max+'%':max)+'</span><span class="g-note">'+Math.round(pct*100)+'% of target</span></div>'+
     yoyH;
 }
+function setDeepPeriod(p,btn){
+  deepPeriod=p;
+  document.querySelectorAll('#deep-period-btns .mini-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDeepDisc();
+}
 function renderDeepDisc(){
   function getStart(){const d=new Date(NOW);if(deepPeriod==='week'){d.setDate(d.getDate()-d.getDay());return d;}if(deepPeriod==='month')return new Date(d.getFullYear(),d.getMonth(),1);if(deepPeriod==='quarter'){const q=Math.floor(d.getMonth()/3);return new Date(d.getFullYear(),q*3,1);}return new Date(d.getFullYear(),0,1);}
   const start=getStart(),stk=skk();
@@ -660,15 +679,15 @@ function renderSpecForecast(deals){
   drawGauge('spec-gauge-wrap',Math.round(pct*100),target||100,entro+' / '+total+' deals',null,true);
 }
 function renderSpecRev(deals){
-  const won=deals.filter(d=>d.stage==='Project Handover/Won');
+  const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won');
   const total=won.length,entro=won.filter(d=>d.specStatus==='Entro Spec').length;
   const pct=total>0?entro/total:0;
   const stk=skk();const yoy=cfg.ytd2025.spec[stk]!==undefined?cfg.ytd2025.spec[stk]:cfg.ytd2025.spec['ALL'];
   drawGauge('specrev-gauge-wrap',Math.round(pct*100),100,entro+' / '+total+' won',yoy,true);
 }
 function renderStrike(deals){
-  const won=deals.filter(d=>d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
-  const lost=deals.filter(d=>d.stage==='Closed Lost').reduce((a,d)=>a+d.amount,0);
+  const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
+  const lost=deals.filter(d=>d.stage==='2367434194'||d.stage==='Closed Lost').reduce((a,d)=>a+d.amount,0);
   const total=won+lost,pct=total>0?Math.round((won/total)*100):0;
   const stk=skk();const yoy=cfg.ytd2025.strike[stk]!==undefined?cfg.ytd2025.strike[stk]:cfg.ytd2025.strike['ALL'];
   drawGauge('strike-gauge-wrap',pct,100,fmt$(won)+' won',yoy,true);
