@@ -442,7 +442,7 @@ async function fetchHubSpot(){
   try{
     let allDeals=[],after=undefined,pages=0;
     while(pages<20){
-      const url=new URL('https://api.hubapi.com/crm/v3/objects/deals');
+      const url=new URL('https://entro-hubspot-proxy.young-band-a798.workers.dev/crm/v3/objects/deals');
       url.searchParams.set('limit','100');url.searchParams.set('properties','dealname,amount,dealstage,hubspot_owner_id,closedate,estimated_close_date,specification_status__c,specification_status,hs_deal_stage_probability,address,sector,project_type,deal_source');
       if(after)url.searchParams.set('after',after);
       const r=await fetch(url.toString(),{headers:{'Authorization':'Bearer '+cfg.hsToken}});
@@ -450,12 +450,12 @@ async function fetchHubSpot(){
       const d=await r.json();allDeals=allDeals.concat(d.results||[]);
       if(d.paging?.next?.after){after=d.paging.next.after;pages++;}else break;
     }
-    const or=await fetch('https://api.hubapi.com/crm/v3/owners?limit=100',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
+    const or=await fetch('https://entro-hubspot-proxy.young-band-a798.workers.dev/crm/v3/owners?limit=100',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
     const od=or.ok?await or.json():{results:[]};
     const oMap={};(od.results||[]).forEach(o=>{oMap[o.id]=o.firstName+' '+o.lastName;});
     hsDeals=allDeals.map(d=>({id:d.id,name:d.properties.dealname||'',owner:oMap[d.properties.hubspot_owner_id]||'Unknown',stage:d.properties.dealstage||'',amount:parseFloat(d.properties.amount||0),estimatedCloseDate:d.properties.estimated_close_date||d.properties.closedate||null,specStatus:d.properties.specification_status__c||d.properties.specification_status||'',createDate:d.properties.hs_createdate||null}));
     // Fetch meetings via CRM engagements API v2 (works with timeline scope)
-    const er=await fetch('https://api.hubapi.com/crm/v3/objects/meetings?limit=100&properties=hs_meeting_title,hubspot_owner_id,hs_meeting_outcome,hs_timestamp,hs_meeting_source,hs_activity_type',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
+    const er=await fetch('https://entro-hubspot-proxy.young-band-a798.workers.dev/crm/v3/objects/meetings?limit=100&properties=hs_meeting_title,hubspot_owner_id,hs_meeting_outcome,hs_timestamp,hs_meeting_source,hs_activity_type',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
     if(er.ok){
       const ed=await er.json();
       hsMeetings=(ed.results||[]).map(e=>({
@@ -467,7 +467,7 @@ async function fetchHubSpot(){
       // Also try to get meeting type from associations if direct property missing
     } else {
       // Fallback to legacy engagements endpoint
-      const er2=await fetch('https://api.hubapi.com/engagements/v1/engagements/paged?limit=250&type=MEETING',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
+      const er2=await fetch('https://entro-hubspot-proxy.young-band-a798.workers.dev/engagements/v1/engagements/paged?limit=250&type=MEETING',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
       if(er2.ok){const ed2=await er2.json();hsMeetings=(ed2.results||[]).map(e=>({id:e.engagement?.id,owner:oMap[e.engagement?.ownerId]||'Unknown',type:e.metadata?.meetingType||'',date:e.engagement?.createdAt?new Date(e.engagement.createdAt).toISOString():null}));}
     }
     isLive=true;updateStatus();
@@ -790,10 +790,4 @@ document.getElementById('modal').addEventListener('click',function(e){if(e.targe
     if(pc)ro.observe(pc);
   }
   const t=localStorage.getItem('entro_theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');
-  document.getElementById('topbar-date').textContent=NOW.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  loadCfg();updateStatus();renderAll();
-  setInterval(()=>{if(isLive)fetchAllData();},5*60*1000);
-})();
-</script>
-</body>
-</html>
+  document.getElementById('topbar-date').textContent=NOW.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
