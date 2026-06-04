@@ -460,6 +460,20 @@ function loadCfg(){
 }
 function saveCfg(){localStorage.setItem('entro_cfg4',JSON.stringify(cfg));}
 
+// Fetch with timeout to prevent hanging
+async function fetchT(url, opts={}, ms=15000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),ms);
+  try{
+    const r=await fetch(url,{...opts,signal:controller.signal});
+    clearTimeout(timer);
+    return r;
+  }catch(e){
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
 async function fetchHubSpot(){
   if(!cfg.hsToken){isLive=false;updateStatus();return;}
   try{
@@ -483,16 +497,17 @@ async function fetchHubSpot(){
         properties:PROPS,sorts:[],limit:100
       };
       if(a1)body.after=a1;
-      const r=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
+      const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
         method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
         body:JSON.stringify(body)
-      });
+      },20000);
       if(!r.ok)throw new Error('Active fetch '+r.status);
       const d=await r.json();
       allDeals=allDeals.concat(d.results||[]);
       if(d.paging?.next?.after){a1=d.paging.next.after;p1++;}else break;
     }
 
+    document.getElementById('hs-connect-status').textContent='Loading won/lost deals…';
     // FETCH 2: Won/Lost — Sales pipeline only, closed from Jan 2026 onwards
     // Uses createdate as the filter since closedate can be wrong on Pipedrive imports
     let p2=0,a2=undefined;
@@ -506,17 +521,18 @@ async function fetchHubSpot(){
         properties:PROPS,sorts:[],limit:100
       };
       if(a2)body.after=a2;
-      const r=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
+      const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
         method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
         body:JSON.stringify(body)
-      });
+      },20000);
       if(!r.ok)throw new Error('Closed fetch '+r.status);
       const d=await r.json();
       allDeals=allDeals.concat(d.results||[]);
       if(d.paging?.next?.after){a2=d.paging.next.after;p2++;}else break;
     }
+    document.getElementById('hs-connect-status').textContent='Loading owners & meetings…';
     // Fetch owners to map IDs to names
-    const ownersResp=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/owners?limit=100',{
+    const ownersResp=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/owners?limit=100',{
       headers:{'Authorization':'Bearer '+cfg.hsToken}
     });
     const ownersData=ownersResp.ok?await ownersResp.json():{results:[]};
@@ -528,7 +544,7 @@ async function fetchHubSpot(){
     while(mPages<20){
       let mUrl='https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/meetings?limit=100&properties=hs_meeting_title,hubspot_owner_id,hs_timestamp,hs_activity_type,hs_createdate';
       if(mAfter)mUrl+='&after='+mAfter;
-      const er=await fetch(mUrl,{headers:{'Authorization':'Bearer '+cfg.hsToken}});
+      const er=await fetchT(mUrl,{headers:{'Authorization':'Bearer '+cfg.hsToken}},10000);
       if(!er.ok)break;
       const ed=await er.json();
       allMeetings=allMeetings.concat(ed.results||[]);
@@ -863,7 +879,14 @@ function saveSettings(){
 async function saveHubSpotToken(){
   const tok=document.getElementById('hs-token-input').value.trim();cfg.hsToken=tok;
   document.getElementById('hs-connect-status').textContent='Connecting\u2026';document.getElementById('hs-connect-status').style.color='var(--text3)';
-  saveCfg();await fetchAllData();
+  saveCfg();
+  const connectTimer=setTimeout(()=>{
+    if(!isLive){
+      document.getElementById('hs-connect-status').innerHTML='<span style="color:var(--red)">Timed out after 60s. Check token or try again.</span>';
+    }
+  },60000);
+  await fetchAllData();
+  clearTimeout(connectTimer);
   if(isLive){
     const stages=[...new Set(hsDeals.map(d=>d.stage))].slice(0,5).join(', ');
     const specVals=[...new Set(hsDeals.map(d=>d.specStatus).filter(Boolean))].join(', ');
