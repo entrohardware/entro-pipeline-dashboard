@@ -323,7 +323,7 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
       <div class="tab-pane active" id="tab-hubspot">
         <div class="m-sect">
           <div class="sect-ttl">Private App Token</div>
-          <div class="info-note">Create a <strong>Private App</strong> in HubSpot &#8594; Settings &#8594; Integrations &#8594; Private Apps. Required scopes: <code>crm.objects.deals.read</code>, <code>crm.objects.contacts.read</code>, <code>crm.objects.meetings.read</code>.</div>
+          <div class="info-note">Create a <strong>Private App</strong> in HubSpot &#8594; Settings &#8594; Integrations &#8594; Private Apps. Required scopes: <code>crm.objects.deals.read</code>, <code>crm.objects.contacts.read</code>, <code>crm.objects.owners.read</code>, <code>crm.schemas.custom.read</code>, <code>crm.objects.custom.read</code>, <code>timeline</code>, <code>crm.schemas.appointments.read</code>.</div>
           <div class="hs-row">
             <input type="password" class="hs-tok" id="hs-token-input" placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
             <button class="btn-p" onclick="saveHubSpotToken()">Connect</button>
@@ -333,7 +333,7 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
         </div>
         <div class="m-sect">
           <div class="sect-ttl">Pipeline Stage Names</div>
-          <div class="info-note">Enter exact stage names as they appear in HubSpot (case-sensitive).</div>
+          <div class="info-note">HubSpot may return deal stages as internal IDs (e.g. <code>123456789</code>) rather than names. If your pipeline data shows as empty after connecting, go to HubSpot → CRM → Deals → Board view, open browser DevTools → Network, and find a deals API call to see the stage IDs being used. Paste those IDs here instead of names. Alternatively check Settings → Properties → Deal Stages for the internal names.</div>
           <div id="pipeline-id-rows"></div>
         </div>
       </div>
@@ -443,7 +443,7 @@ async function fetchHubSpot(){
     let allDeals=[],after=undefined,pages=0;
     while(pages<20){
       const url=new URL('https://api.hubapi.com/crm/v3/objects/deals');
-      url.searchParams.set('limit','100');url.searchParams.set('properties','dealname,amount,dealstage,hubspot_owner_id,closedate,estimated_close_date,specification_status__c');
+      url.searchParams.set('limit','100');url.searchParams.set('properties','dealname,amount,dealstage,hubspot_owner_id,closedate,estimated_close_date,specification_status__c,specification_status,hs_deal_stage_probability,address,sector,project_type,deal_source');
       if(after)url.searchParams.set('after',after);
       const r=await fetch(url.toString(),{headers:{'Authorization':'Bearer '+cfg.hsToken}});
       if(!r.ok)throw new Error('HubSpot '+r.status);
@@ -453,9 +453,23 @@ async function fetchHubSpot(){
     const or=await fetch('https://api.hubapi.com/crm/v3/owners?limit=100',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
     const od=or.ok?await or.json():{results:[]};
     const oMap={};(od.results||[]).forEach(o=>{oMap[o.id]=o.firstName+' '+o.lastName;});
-    hsDeals=allDeals.map(d=>({id:d.id,name:d.properties.dealname||'',owner:oMap[d.properties.hubspot_owner_id]||'Unknown',stage:d.properties.dealstage||'',amount:parseFloat(d.properties.amount||0),estimatedCloseDate:d.properties.estimated_close_date||d.properties.closedate||null,specStatus:d.properties.specification_status__c||'',createDate:d.properties.hs_createdate||null}));
-    const er=await fetch('https://api.hubapi.com/engagements/v1/engagements/paged?limit=250&type=MEETING',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
-    if(er.ok){const ed=await er.json();hsMeetings=(ed.results||[]).map(e=>({id:e.engagement?.id,owner:oMap[e.engagement?.ownerId]||'Unknown',type:e.metadata?.meetingType||'',date:e.engagement?.createdAt?new Date(e.engagement.createdAt).toISOString():null}));}
+    hsDeals=allDeals.map(d=>({id:d.id,name:d.properties.dealname||'',owner:oMap[d.properties.hubspot_owner_id]||'Unknown',stage:d.properties.dealstage||'',amount:parseFloat(d.properties.amount||0),estimatedCloseDate:d.properties.estimated_close_date||d.properties.closedate||null,specStatus:d.properties.specification_status__c||d.properties.specification_status||'',createDate:d.properties.hs_createdate||null}));
+    // Fetch meetings via CRM engagements API v2 (works with timeline scope)
+    const er=await fetch('https://api.hubapi.com/crm/v3/objects/meetings?limit=100&properties=hs_meeting_title,hubspot_owner_id,hs_meeting_outcome,hs_timestamp,hs_meeting_source,hs_activity_type',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
+    if(er.ok){
+      const ed=await er.json();
+      hsMeetings=(ed.results||[]).map(e=>({
+        id:e.id,
+        owner:oMap[e.properties?.hubspot_owner_id]||e.properties?.hubspot_owner_id||'Unknown',
+        type:e.properties?.hs_activity_type||e.properties?.hs_meeting_source||'',
+        date:e.properties?.hs_timestamp||null
+      }));
+      // Also try to get meeting type from associations if direct property missing
+    } else {
+      // Fallback to legacy engagements endpoint
+      const er2=await fetch('https://api.hubapi.com/engagements/v1/engagements/paged?limit=250&type=MEETING',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
+      if(er2.ok){const ed2=await er2.json();hsMeetings=(ed2.results||[]).map(e=>({id:e.engagement?.id,owner:oMap[e.engagement?.ownerId]||'Unknown',type:e.metadata?.meetingType||'',date:e.engagement?.createdAt?new Date(e.engagement.createdAt).toISOString():null}));}
+    }
     isLive=true;updateStatus();
   }catch(err){console.error(err);isLive=false;updateStatus();const el=document.getElementById('hs-connect-status');if(el){el.textContent='Error: '+err.message;el.style.color='var(--red)';}}
 }
@@ -734,7 +748,14 @@ async function saveHubSpotToken(){
   const tok=document.getElementById('hs-token-input').value.trim();cfg.hsToken=tok;
   document.getElementById('hs-connect-status').textContent='Connecting\u2026';document.getElementById('hs-connect-status').style.color='var(--text3)';
   saveCfg();await fetchAllData();
-  if(isLive){document.getElementById('hs-connect-status').textContent='\u2713 Connected. '+hsDeals.length+' deals loaded.';document.getElementById('hs-connect-status').style.color='var(--green)';}
+  if(isLive){
+    const stages=[...new Set(hsDeals.map(d=>d.stage))].slice(0,5).join(', ');
+    const specVals=[...new Set(hsDeals.map(d=>d.specStatus).filter(Boolean))].join(', ');
+    document.getElementById('hs-connect-status').innerHTML=
+      '<span style="color:var(--green)">✓ Connected. '+hsDeals.length+' deals, '+hsMeetings.length+' meetings loaded.</span><br>'+
+      '<span style="font-size:10px;color:var(--text3)">Stage IDs found: '+stages+'</span><br>'+
+      '<span style="font-size:10px;color:var(--text3)">Spec status values: '+(specVals||'none found — check property name')+'</span>';
+  }
 }
 function clearHubSpotToken(){cfg.hsToken='';document.getElementById('hs-token-input').value='';document.getElementById('hs-connect-status').textContent='Disconnected. Showing demo data.';document.getElementById('hs-connect-status').style.color='var(--text3)';saveCfg();isLive=false;updateStatus();renderAll();}
 document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeSettings();});
