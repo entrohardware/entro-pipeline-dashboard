@@ -382,7 +382,30 @@ const DEF={
   specTarget:{ALL:40,VIC:40,NSW:40,QLD:40,SA:40,WA:30,TAS:30,ACT:30,NT:20},
   stageTargets:{'2612273595':2000000,'2367434189':3000000,'2367434190':1500000,'2367434191':500000,'2367434192':800000,'2369507813':5000000,'2369507814':8000000,'2369507815':1000000},
   forecastTargets:{},
-  ytd2025:{spec:{ALL:32,VIC:35,NSW:30,QLD:28,SA:38,WA:25,TAS:20,ACT:22,NT:15},strike:{ALL:22,VIC:24,NSW:20,QLD:18,SA:28,WA:18,TAS:15,ACT:16,NT:12},won:{ALL:18.5,VIC:6.2,NSW:4.8,QLD:4.1,SA:2.1,WA:0.8,TAS:0.3,ACT:0.2,NT:0}}
+  ytd2025:{
+    // Full year baselines
+    spec:  {ALL:41.5,VIC:48.3,NSW:34.6,QLD:33.5,SA:0,  WA:0,  TAS:0,ACT:0,NT:0},
+    strike:{ALL:18.3,VIC:23.7,NSW:13.5,QLD:19.5,SA:7.5,WA:8.4,TAS:0,ACT:0,NT:0},
+    won:   {ALL:4.893,VIC:2.854,NSW:1.357,QLD:0.545,SA:0.122,WA:0.015,TAS:0,ACT:0,NT:0},
+    // Quarterly breakdowns (for QTD comparison)
+    Q:{
+      ALL: {Q1:{strike:15.6,spec:24.7,won:0.930},Q2:{strike:18.2,spec:53.3,won:1.127},Q3:{strike:25.7,spec:43.5,won:1.898},Q4:{strike:13.0,spec:39.9,won:0.937}},
+      VIC: {Q1:{strike:16.9,spec:25.6,won:0.613},Q2:{strike:23.4,spec:55.9,won:0.711},Q3:{strike:38.2,spec:53.3,won:0.872},Q4:{strike:21.2,spec:54.7,won:0.658}},
+      NSW: {Q1:{strike:8.5, spec:26.1,won:0.158},Q2:{strike:17.9,spec:56.0,won:0.280},Q3:{strike:21.7,spec:32.3,won:0.841},Q4:{strike:2.8, spec:0,   won:0.078}},
+      QLD: {Q1:{strike:20.7,spec:52.1,won:0.060},Q2:{strike:20.3,spec:39.0,won:0.122},Q3:{strike:19.0,spec:55.7,won:0.161},Q4:{strike:19.1,spec:7.1, won:0.202}},
+      SA:  {Q1:{strike:73.3,spec:0,   won:0.099},Q2:{strike:0,   spec:0,   won:0},    Q3:{strike:6.3, spec:0,   won:0.024},Q4:{strike:0,   spec:0,   won:0}},
+      WA:  {Q1:{strike:0,   spec:0,   won:0},    Q2:{strike:9.5, spec:0,   won:0.015},Q3:{strike:0,   spec:0,   won:0},    Q4:{strike:0,   spec:0,   won:0}}
+    },
+    // Monthly breakdowns (for MTD comparison)
+    M:{
+      ALL: {Jan:{strike:14.7,spec:7.3, won:0.252},Feb:{strike:16.9,spec:31.4,won:0.423},Mar:{strike:14.8,spec:30.8,won:0.256},Apr:{strike:17.4,spec:19.5,won:0.297},May:{strike:26.3,spec:49.3,won:0.462},Jun:{strike:13.4,spec:85.8,won:0.367},Jul:{strike:36.2,spec:49.6,won:1.001},Aug:{strike:8.0,spec:42.8,won:0.216},Sep:{strike:35.4,spec:34.9,won:0.682},Oct:{strike:11.5,spec:37.7,won:0.401},Nov:{strike:12.2,spec:35.0,won:0.300},Dec:{strike:18.8,spec:50.0,won:0.236}},
+      VIC: {Jan:{strike:10.4,spec:0,   won:0.132},Feb:{strike:27.6,spec:28.5,won:0.385},Mar:{strike:9.9, spec:49.4,won:0.096},Apr:{strike:15.1,spec:18.0,won:0.152},May:{strike:33.9,spec:52.3,won:0.335},Jun:{strike:21.4,spec:87.2,won:0.223},Jul:{strike:38.1,spec:68.0,won:0.400},Aug:{strike:35.2,spec:40.1,won:0.166},Sep:{strike:40.2,spec:41.3,won:0.306},Oct:{strike:12.9,spec:50.8,won:0.270},Nov:{strike:30.9,spec:46.4,won:0.227},Dec:{strike:58.8,spec:73.1,won:0.161}},
+      NSW: {Jan:{strike:26.0,spec:20.1,won:0.091},Feb:{strike:3.7, spec:60.9,won:0.038},Mar:{strike:6.0, spec:0,   won:0.030},Apr:{strike:45.5,spec:12.2,won:0.113},May:{strike:10.5,spec:100, won:0.042},Jun:{strike:13.6,spec:81.1,won:0.124},Jul:{strike:48.5,spec:37.3,won:0.601},Aug:{strike:1.3, spec:100, won:0.026},Sep:{strike:30.7,spec:10.1,won:0.214},Oct:{strike:6.6, spec:0,   won:0.062},Nov:{strike:1.2, spec:0,   won:0.015},Dec:{strike:0,   spec:0,   won:0}},
+      QLD: {Jan:{strike:37.9,spec:0,   won:0.029},Feb:{strike:0,   spec:0,   won:0},    Mar:{strike:18.9,spec:100, won:0.031},Apr:{strike:17.1,spec:100, won:0.017},May:{strike:22.8,spec:12.0,won:0.085},Jun:{strike:15.6,spec:100, won:0.021},Jul:{strike:0,   spec:0,   won:0},    Aug:{strike:0,   spec:0,   won:0},    Sep:{strike:34.9,spec:55.7,won:0.161},Oct:{strike:20.7,spec:20.7,won:0.069},Nov:{strike:17.1,spec:0,   won:0.058},Dec:{strike:19.6,spec:0,   won:0.075}},
+      SA:  {Jan:{strike:0,spec:0,won:0},Feb:{strike:0,spec:0,won:0},Mar:{strike:100,spec:0,won:0.099},Apr:{strike:0,spec:0,won:0},May:{strike:0,spec:0,won:0},Jun:{strike:0,spec:0,won:0},Jul:{strike:0,spec:0,won:0},Aug:{strike:100,spec:0,won:0.024},Sep:{strike:0,spec:0,won:0},Oct:{strike:0,spec:0,won:0},Nov:{strike:0,spec:0,won:0},Dec:{strike:0,spec:0,won:0}},
+      WA:  {Jan:{strike:0,spec:0,won:0},Feb:{strike:0,spec:0,won:0},Mar:{strike:0,spec:0,won:0},Apr:{strike:42.1,spec:0,won:0.015},May:{strike:0,spec:0,won:0},Jun:{strike:0,spec:0,won:0},Jul:{strike:0,spec:0,won:0},Aug:{strike:0,spec:0,won:0},Sep:{strike:0,spec:0,won:0},Oct:{strike:0,spec:0,won:0},Nov:{strike:0,spec:0,won:0},Dec:{strike:0,spec:0,won:0}}
+    }
+  }
 };
 
 let cfg=JSON.parse(JSON.stringify(DEF));
@@ -441,44 +464,59 @@ async function fetchHubSpot(){
   if(!cfg.hsToken){isLive=false;updateStatus();return;}
   try{
     let allDeals=[],after=undefined,pages=0;
-    const PROPS=['dealname','amount','dealstage','hubspot_owner_id','closedate','estimated_close_date','entro_specification','specification_status__c','specification_status','entro_spec','deal_source','pipeline'];
-    while(pages<100){
+    const PROPS=['dealname','amount','dealstage','hubspot_owner_id','closedate',
+      'estimated_close_date','entro_specification','specification_status__c',
+      'specification_status','entro_spec','deal_source','pipeline','createdate'];
+    const ACTIVE_STAGES=['2612273595','2367434189','2367434190','2367434191',
+      '2367434192','2369507813','2369507814','2369507815'];
+    const WON_LOST_STAGES=['2367434193','2367434194'];
+    const HS_START_TS=String(new Date('2026-01-01').getTime());
+
+    // FETCH 1: Active pipeline deals — Sales pipeline only, any date
+    let p1=0,a1=undefined;
+    while(p1<30){
       const body={
-        filterGroups:[{filters:[{propertyName:'pipeline',operator:'EQ',value:'1412380097'}]}],
-        properties:PROPS,
-        sorts:[{propertyName:'hs_lastmodifieddate',direction:'DESCENDING'}],
-        limit:100
+        filterGroups:[{filters:[
+          {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
+          {propertyName:'dealstage',operator:'IN',values:ACTIVE_STAGES}
+        ]}],
+        properties:PROPS,sorts:[],limit:100
       };
-      if(after)body.after=after;
+      if(a1)body.after=a1;
       const r=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
+        method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
         body:JSON.stringify(body)
       });
-      if(!r.ok){
-        // POST failed — fall back to GET all and filter client side
-        let getAfter=undefined,getPages=0;
-        while(getPages<50){
-          const url=new URL('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals');
-          url.searchParams.set('limit','100');
-          url.searchParams.set('properties',PROPS.join(','));
-          if(getAfter)url.searchParams.set('after',getAfter);
-          const r2=await fetch(url.toString(),{headers:{'Authorization':'Bearer '+cfg.hsToken}});
-          if(!r2.ok)throw new Error('HubSpot '+r2.status);
-          const d2=await r2.json();
-          allDeals=allDeals.concat((d2.results||[]).filter(x=>x.properties?.pipeline==='1412380097'));
-          if(d2.paging?.next?.after){getAfter=d2.paging.next.after;getPages++;}else break;
-        }
-        break;
-      }
+      if(!r.ok)throw new Error('Active fetch '+r.status);
       const d=await r.json();
       allDeals=allDeals.concat(d.results||[]);
-      if(d.paging?.next?.after){after=d.paging.next.after;pages++;}else break;
+      if(d.paging?.next?.after){a1=d.paging.next.after;p1++;}else break;
     }
-    const or=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/owners?limit=100',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
-    const od=or.ok?await or.json():{results:[]};
+
+    // FETCH 2: Won/Lost — Sales pipeline only, closed from Jan 2026 onwards
+    // Uses createdate as the filter since closedate can be wrong on Pipedrive imports
+    let p2=0,a2=undefined;
+    while(p2<20){
+      const body={
+        filterGroups:[{filters:[
+          {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
+          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES},
+          {propertyName:'createdate',operator:'GTE',value:HS_START_TS}
+        ]}],
+        properties:PROPS,sorts:[],limit:100
+      };
+      if(a2)body.after=a2;
+      const r=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
+        method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
+      if(!r.ok)throw new Error('Closed fetch '+r.status);
+      const d=await r.json();
+      allDeals=allDeals.concat(d.results||[]);
+      if(d.paging?.next?.after){a2=d.paging.next.after;p2++;}else break;
+    }
     const oMap={};(od.results||[]).forEach(o=>{oMap[o.id]=o.firstName+' '+o.lastName;});
-    hsDeals=allDeals.map(d=>({id:d.id,name:d.properties.dealname||'',owner:oMap[d.properties.hubspot_owner_id]||'Unknown',stage:d.properties.dealstage||'',amount:parseFloat(d.properties.amount||0),estimatedCloseDate:d.properties.estimated_close_date||d.properties.closedate||null,specStatus:d.properties.entro_specification||d.properties.entro_spec||d.properties.specification_status__c||d.properties.specification_status||'',createDate:d.properties.hs_createdate||null}));
+    hsDeals=allDeals.map(d=>({id:d.id,name:d.properties.dealname||'',owner:oMap[d.properties.hubspot_owner_id]||'Unknown',stage:d.properties.dealstage||'',amount:parseFloat(d.properties.amount||0),estimatedCloseDate:d.properties.estimated_close_date||d.properties.closedate||null,specStatus:(d.properties.entro_specification||d.properties.entro_spec||d.properties.specification_status__c||d.properties.specification_status||'').trim(),createDate:d.properties.hs_createdate||null}));
     // Fetch meetings via CRM engagements API v2 (works with timeline scope)
     const er=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/meetings?limit=100&properties=hs_meeting_title,hubspot_owner_id,hs_meeting_outcome,hs_timestamp,hs_meeting_source,hs_activity_type',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
     if(er.ok){
@@ -501,6 +539,22 @@ async function fetchHubSpot(){
 function updateStatus(){document.getElementById('hs-dot').className='sdot'+(isLive?' live':'');document.getElementById('hs-status-text').textContent=isLive?'Live \u2014 HubSpot':'Demo data';}
 async function fetchAllData(){await fetchHubSpot();renderAll();}
 
+function get2025Comp(metric,stk){
+  // Returns the matching 2025 comparison value for the current date context
+  // Uses monthly data for MTD, quarterly for QTD, full year for YTD
+  const now=NOW;
+  const curMonth=now.toLocaleString('en-AU',{month:'short'});
+  const curQ='Q'+Math.ceil((now.getMonth()+1)/3);
+  const state=stk==='ALL'?'ALL':(cfg.ytd2025.M[stk]?stk:'ALL');
+  // Try monthly first, then quarterly, then annual
+  const mData=cfg.ytd2025.M[state]?.[curMonth];
+  const qData=cfg.ytd2025.Q[state]?.[curQ];
+  const yData=cfg.ytd2025[metric]?.[stk];
+  // Return same-month figure as most relevant comparison
+  if(mData&&mData[metric]!==undefined) return mData[metric];
+  if(qData&&qData[metric]!==undefined) return qData[metric];
+  return yData!==undefined?yData:cfg.ytd2025[metric]['ALL'];
+}
 function renderAll(){const deals=hsDeals.filter(sfilt);renderPipeline(deals);renderForecast(deals);renderDeepDisc();renderSpecForecast(deals);renderSpecRev(deals);renderStrike(deals);}
 
 const STAGE_LABELS={
@@ -702,7 +756,7 @@ function renderDeepDisc(){
 }
 function renderSpecForecast(deals){
   const open=deals.filter(d=>d.stage!=='2367434193'&&d.stage!=='Project Handover/Won'&&d.stage!=='2367434194'&&d.stage!=='Closed Lost');
-  const entroVal=open.filter(d=>d.specStatus==='Entro Spec').reduce((a,d)=>a+(d.amount||0),0);
+  const entroVal=open.filter(d=>d.specStatus==='Entro Spec'||d.specStatus==='Spec').reduce((a,d)=>a+(d.amount||0),0);
   const specVal=open.filter(d=>d.specStatus==='Entro Spec'||d.specStatus==='D&C Spec'||d.specStatus==='VE Project').reduce((a,d)=>a+(d.amount||0),0);
   const totalVal=open.reduce((a,d)=>a+(d.amount||0),0);
   const pct=totalVal>0?entroVal/totalVal:0;
@@ -711,17 +765,19 @@ function renderSpecForecast(deals){
 }
 function renderSpecRev(deals){
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won');
-  const entroVal=won.filter(d=>d.specStatus==='Entro Spec').reduce((a,d)=>a+(d.amount||0),0);
+  const entroVal=won.filter(d=>d.specStatus==='Entro Spec'||d.specStatus==='Spec').reduce((a,d)=>a+(d.amount||0),0);
   const totalVal=won.reduce((a,d)=>a+(d.amount||0),0);
   const pct=totalVal>0?entroVal/totalVal:0;
-  const stk=skk();const yoy=cfg.ytd2025.spec[stk]!==undefined?cfg.ytd2025.spec[stk]:cfg.ytd2025.spec['ALL'];
+  const stk=skk();
+  const yoy=get2025Comp('spec',stk);
   drawGauge('specrev-gauge-wrap',Math.round(pct*100),100,fmt$(entroVal)+' of '+fmt$(totalVal)+' won',yoy,true);
 }
 function renderStrike(deals){
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
   const lost=deals.filter(d=>d.stage==='2367434194'||d.stage==='Closed Lost').reduce((a,d)=>a+d.amount,0);
   const total=won+lost,pct=total>0?Math.round((won/total)*100):0;
-  const stk=skk();const yoy=cfg.ytd2025.strike[stk]!==undefined?cfg.ytd2025.strike[stk]:cfg.ytd2025.strike['ALL'];
+  const stk=skk();
+  const yoy=get2025Comp('strike',stk);
   drawGauge('strike-gauge-wrap',pct,100,fmt$(won)+' won',yoy,true);
 }
 
