@@ -790,4 +790,10 @@ document.getElementById('modal').addEventListener('click',function(e){if(e.targe
     if(pc)ro.observe(pc);
   }
   const t=localStorage.getItem('entro_theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');
-  document.getElementById('topbar-date').textContent=NOW.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+  document.getElementById('topbar-date').textContent=NOW.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  loadCfg();updateStatus();renderAll();
+  setInterval(()=>{if(isLive)fetchAllData();},5*60*1000);
+})();
+</script>
+</body>
+</html>
