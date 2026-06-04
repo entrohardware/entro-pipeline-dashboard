@@ -523,21 +523,24 @@ async function fetchHubSpot(){
     const oMap={};(ownersData.results||[]).forEach(o=>{oMap[o.id]=o.firstName+' '+o.lastName;});
     hsDeals=allDeals.map(d=>({id:d.id,name:d.properties.dealname||'',owner:oMap[d.properties.hubspot_owner_id]||'Unknown',stage:d.properties.dealstage||'',amount:parseFloat(d.properties.amount||0),estimatedCloseDate:d.properties.estimated_close_date||d.properties.closedate||null,specStatus:(d.properties.entro_specification||d.properties.entro_spec||d.properties.specification_status__c||d.properties.specification_status||'').trim(),createDate:d.properties.hs_createdate||null}));
     // Fetch meetings via CRM engagements API v2 (works with timeline scope)
-    const er=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/meetings?limit=100&properties=hs_meeting_title,hubspot_owner_id,hs_meeting_outcome,hs_timestamp,hs_meeting_source,hs_activity_type',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
-    if(er.ok){
+    // Fetch all meetings with pagination — need hs_activity_type for Deep Discovery matching
+    let allMeetings=[],mAfter=undefined,mPages=0;
+    while(mPages<20){
+      let mUrl='https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/meetings?limit=100&properties=hs_meeting_title,hubspot_owner_id,hs_timestamp,hs_activity_type,hs_createdate';
+      if(mAfter)mUrl+='&after='+mAfter;
+      const er=await fetch(mUrl,{headers:{'Authorization':'Bearer '+cfg.hsToken}});
+      if(!er.ok)break;
       const ed=await er.json();
-      hsMeetings=(ed.results||[]).map(e=>({
-        id:e.id,
-        owner:oMap[e.properties?.hubspot_owner_id]||e.properties?.hubspot_owner_id||'Unknown',
-        type:e.properties?.hs_activity_type||e.properties?.hs_meeting_source||'',
-        date:e.properties?.hs_timestamp||null
-      }));
-      // Also try to get meeting type from associations if direct property missing
-    } else {
-      // Fallback to legacy engagements endpoint
-      const er2=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/engagements/v1/engagements/paged?limit=250&type=MEETING',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
-      if(er2.ok){const ed2=await er2.json();hsMeetings=(ed2.results||[]).map(e=>({id:e.engagement?.id,owner:oMap[e.engagement?.ownerId]||'Unknown',type:e.metadata?.meetingType||'',date:e.engagement?.createdAt?new Date(e.engagement.createdAt).toISOString():null}));}
+      allMeetings=allMeetings.concat(ed.results||[]);
+      if(ed.paging?.next?.after){mAfter=ed.paging.next.after;mPages++;}else break;
     }
+    hsMeetings=allMeetings.map(e=>({
+      id:e.id,
+      owner:oMap[e.properties?.hubspot_owner_id]||e.properties?.hubspot_owner_id||'Unknown',
+      type:e.properties?.hs_activity_type||'',
+      date:e.properties?.hs_timestamp||e.properties?.hs_createdate||null
+    }));
+    console.log('Meetings loaded:',hsMeetings.length,'| Types found:',[...new Set(hsMeetings.map(m=>m.type))].join(', '));
     isLive=true;updateStatus();
   }catch(err){console.error(err);isLive=false;updateStatus();const el=document.getElementById('hs-connect-status');if(el){el.textContent='Error: '+err.message;el.style.color='var(--red)';}}
 }
@@ -754,7 +757,7 @@ function setDeepPeriod(p,btn){
 function renderDeepDisc(){
   function getStart(){const d=new Date(NOW);if(deepPeriod==='week'){d.setDate(d.getDate()-d.getDay());return d;}if(deepPeriod==='month')return new Date(d.getFullYear(),d.getMonth(),1);if(deepPeriod==='quarter'){const q=Math.floor(d.getMonth()/3);return new Date(d.getFullYear(),q*3,1);}return new Date(d.getFullYear(),0,1);}
   const start=getStart(),stk=skk();
-  const filtered=hsMeetings.filter(m=>{if(m.type!=='Deep Discovery')return false;if(!m.date||new Date(m.date)<start)return false;if(activeState==='ALL')return true;return o2s(m.owner)===stk;});
+  const filtered=hsMeetings.filter(m=>{if(!m.type||!m.type.toLowerCase().includes('deep discovery'))return false;if(!m.date||new Date(m.date)<start)return false;if(activeState==='ALL')return true;return o2s(m.owner)===stk;});
   const count=filtered.length;
   const tObj=cfg.deepTargets[deepPeriod]||{};const target=tObj[stk]!==undefined?tObj[stk]:(tObj['ALL']||8);
   drawGauge('deep-gauge-wrap',count,target||1,deepPeriod.toUpperCase(),null,false);
