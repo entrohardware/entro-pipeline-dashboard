@@ -441,37 +441,20 @@ async function fetchHubSpot(){
   if(!cfg.hsToken){isLive=false;updateStatus();return;}
   try{
     let allDeals=[],after=undefined,pages=0;
-    const PROPS='dealname,amount,dealstage,hubspot_owner_id,closedate,estimated_close_date,entro_specification,specification_status__c,specification_status,entro_spec,deal_source';
+    const PROPS='dealname,amount,dealstage,hubspot_owner_id,closedate,estimated_close_date,entro_specification,specification_status__c,specification_status,entro_spec,deal_source,pipeline';
     while(pages<20){
-      const searchBody={
-        filterGroups:[{filters:[{propertyName:'pipeline',operator:'EQ',value:'1412380097'}]}],
-        properties:PROPS.split(','),
-        sorts:[],
-        limit:100
-      };
-      if(after)searchBody.after=after;
-      const r=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
-        body:JSON.stringify(searchBody)
-      });
-      if(!r.ok){
-        // Fallback to GET without pipeline filter if search fails
-        const url=new URL('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals');
-        url.searchParams.set('limit','100');
-        url.searchParams.set('properties',PROPS);
-        if(after)url.searchParams.set('after',after);
-        const r2=await fetch(url.toString(),{headers:{'Authorization':'Bearer '+cfg.hsToken}});
-        if(!r2.ok)throw new Error('HubSpot '+r2.status);
-        const d2=await r2.json();allDeals=allDeals.concat(d2.results||[]);
-        if(d2.paging?.next?.after){after=d2.paging.next.after;pages++;}else break;
-        continue;
-      }
-      const d=await r.json();allDeals=allDeals.concat(d.results||[]);
+      const url=new URL('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals');
+      url.searchParams.set('limit','100');
+      url.searchParams.set('properties',PROPS);
+      if(after)url.searchParams.set('after',after);
+      const r=await fetch(url.toString(),{headers:{'Authorization':'Bearer '+cfg.hsToken}});
+      if(!r.ok)throw new Error('HubSpot '+r.status);
+      const d=await r.json();
+      allDeals=allDeals.concat(d.results||[]);
       if(d.paging?.next?.after){after=d.paging.next.after;pages++;}else break;
     }
-    // Filter client-side to Sales pipeline as backup
-    allDeals=allDeals.filter(d=>!d.properties?.pipeline||d.properties?.pipeline==='1412380097');
+    // Filter client-side to Sales pipeline only
+    allDeals=allDeals.filter(d=>d.properties?.pipeline==='1412380097');
     const or=await fetch('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/owners?limit=100',{headers:{'Authorization':'Bearer '+cfg.hsToken}});
     const od=or.ok?await or.json():{results:[]};
     const oMap={};(od.results||[]).forEach(o=>{oMap[o.id]=o.firstName+' '+o.lastName;});
@@ -521,7 +504,12 @@ function renderPipeline(deals){
   let h='<div class="stage-list" style="flex:1;min-height:0;display:flex;flex-direction:column;">';
   cfg.pipelineStages.forEach(s=>{
     const v=sd[s]||0,tgt=cfg.stageTargets[s]||0,pct=Math.min(100,(v/mx)*100),ot=tgt>0&&v>=tgt;
-    h+=`<div class="stage-row"><div class="s-name" title="${STAGE_LABELS[s]||s}">${STAGE_LABELS[s]||s}</div><div><div class="s-track"><div class="s-fill${ot?' ot':''}" style="width:${pct.toFixed(1)}%"></div></div>${tgt>0?`<div style="font-size:9px;color:var(--text4);text-align:right;margin-top:1px;font-family:'ABCFavorit',sans-serif">T: ${fmt$(tgt)}</div>`:''}</div><div class="s-amt">${fmt$(v)}</div></div>`;
+    const tgtPct=tgt>0?v/tgt:0;
+    let barCol='#C85A3A';
+    if(tgtPct>=0.25&&tgtPct<0.75)barCol='#D48020';
+    else if(tgtPct>=0.75&&tgtPct<1.0)barCol='#C8A800';
+    else if(tgtPct>=1.0)barCol='#1D9E75';
+    h+=`<div class="stage-row"><div class="s-name" title="${STAGE_LABELS[s]||s}">${STAGE_LABELS[s]||s}</div><div><div class="s-track"><div class="s-fill" style="width:${pct.toFixed(1)}%;background:${barCol}"></div></div>${tgt>0?`<div style="font-size:9px;color:var(--text4);text-align:right;margin-top:1px;font-family:'ABCFavorit',sans-serif">T: ${fmt$(tgt)}</div>`:''}</div><div class="s-amt">${fmt$(v)}</div></div>`;
   });
   h+='</div>';
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
