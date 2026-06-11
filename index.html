@@ -523,18 +523,20 @@ async function fetchHubSpot(){
     }
 
     document.getElementById('hs-connect-status').textContent='Loading 2026 won/lost deals…';
-    // FETCH 2: Won/Lost — filter by closedate >= Jan 1 2026 server-side
-    // This excludes all Pipedrive historical imports cleanly
-    const JAN_2026_TS = String(new Date('2026-01-01T00:00:00.000Z').getTime());
+    // FETCH 2: Won/Lost — fetch all, filter client-side by hs_v2_date_entered
+    // closedate is corrupted by Pipedrive import — use entered_won stage date instead
+    const ENTERED_WON_PROP='hs_v2_date_entered_2367434193';
+    const ENTERED_LOST_PROP='hs_v2_date_entered_2367434194';
+    const JAN_2026 = new Date('2026-01-01T00:00:00.000Z').getTime();
     let p2=0,a2=undefined;
     while(p2<30){
       const body={
         filterGroups:[{filters:[
           {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
-          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES},
-          {propertyName:'closedate',operator:'GTE',value:JAN_2026_TS}
+          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES}
         ]}],
-        properties:[...PROPS,'closedate'],sorts:[],limit:100
+        properties:[...PROPS,'closedate',ENTERED_WON_PROP,ENTERED_LOST_PROP],
+        sorts:[],limit:100
       };
       if(a2)body.after=a2;
       const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
@@ -543,7 +545,15 @@ async function fetchHubSpot(){
       },20000);
       if(!r.ok)throw new Error('Won/Lost fetch '+r.status);
       const d=await r.json();
-      allDeals=allDeals.concat(d.results||[]);
+      // Filter client-side: keep deals that ENTERED Won or Lost stage in 2026
+      const filtered=(d.results||[]).filter(deal=>{
+        const enteredWon=deal.properties?.[ENTERED_WON_PROP];
+        const enteredLost=deal.properties?.[ENTERED_LOST_PROP];
+        const entered=enteredWon||enteredLost;
+        if(!entered) return false; // no entry date — skip
+        return new Date(entered).getTime()>=JAN_2026;
+      });
+      allDeals=allDeals.concat(filtered);
       if(d.paging?.next?.after){a2=d.paging.next.after;p2++;}else break;
     }
 
