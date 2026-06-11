@@ -632,19 +632,38 @@ function renderPipeline(deals){
   const total=Object.values(sd).reduce((a,b)=>a+b,0);
   document.getElementById('t1-total').textContent=fmt$(total);
 
-  // ── Pipeline snapshot & delta ───────────────────────────────
+  // ── Pipeline snapshot & delta (7-day rolling comparison) ────
   const SNAP_KEY='entro_pipeline_snap_'+skk();
+  const SNAP_HIST_KEY='entro_pipeline_hist_'+skk();
   const NOW_TS=Date.now();
   const ONE_DAY=86400000;
-  let snap=null;
-  try{ snap=JSON.parse(localStorage.getItem(SNAP_KEY)||'null'); }catch(e){}
+  const SEVEN_DAYS=7*ONE_DAY;
 
-  // Save a new snapshot if none exists or it's older than 24h
-  if(!snap||!snap.ts||(NOW_TS-snap.ts)>ONE_DAY){
-    const newSnap={ts:NOW_TS,total:total,stages:{}};
-    cfg.pipelineStages.forEach(s=>newSnap.stages[s]=sd[s]||0);
-    try{ localStorage.setItem(SNAP_KEY,JSON.stringify(newSnap)); }catch(e){}
-    snap=null; // No comparison yet — just saved first snapshot
+  // Load history array — keeps daily snapshots for 14 days
+  let history=[];
+  try{ history=JSON.parse(localStorage.getItem(SNAP_HIST_KEY)||'[]'); }catch(e){}
+
+  // Save today's snapshot if we don't have one for today yet
+  const todayStr=new Date().toDateString();
+  const todaySnap=history.find(s=>new Date(s.ts).toDateString()===todayStr);
+  if(!todaySnap){
+    history.push({ts:NOW_TS,total:total});
+    // Keep only last 14 days
+    history=history.filter(s=>(NOW_TS-s.ts)<14*ONE_DAY);
+    try{ localStorage.setItem(SNAP_HIST_KEY,JSON.stringify(history)); }catch(e){}
+  }
+
+  // Find the snapshot closest to exactly 7 days ago
+  const targetTs=NOW_TS-SEVEN_DAYS;
+  let snap=null;
+  if(history.length>1){
+    // Find entry closest to 7 days ago (but not today)
+    const candidates=history.filter(s=>new Date(s.ts).toDateString()!==todayStr);
+    if(candidates.length>0){
+      snap=candidates.reduce((best,s)=>
+        Math.abs(s.ts-targetTs)<Math.abs(best.ts-targetTs)?s:best
+      );
+    }
   }
 
   const deltaEl=document.getElementById('t1-delta');
@@ -776,6 +795,58 @@ function renderForecast(deals){
   }
 }
 
+// Extended gauge with explicit colour and target marker line on arc
+function drawGaugeColour(id,value,max,target,col,sublabel,yoy){
+  const pct=max>0?Math.min(1.05,value/max):0;
+  const fillPct=Math.min(pct,1);
+  const W=220,H=130,cx=110,cy=108,R=88,SW=14;
+  const light=isLight();
+  const trackC=light?'#E0DDD6':'#222222';
+  const dispVal=value+'%';
+  function arcP(a1,a2){
+    const x1=cx+R*Math.cos(a1),y1=cy+R*Math.sin(a1);
+    const x2=cx+R*Math.cos(a2),y2=cy+R*Math.sin(a2);
+    const lg=(a2-a1)>Math.PI?1:0;
+    return'M'+x1.toFixed(2)+' '+y1.toFixed(2)+' A'+R+' '+R+' 0 '+lg+' 1 '+x2.toFixed(2)+' '+y2.toFixed(2);
+  }
+  const arcLen=(Math.PI*R).toFixed(2);
+  const fillLen=(fillPct*Math.PI*R).toFixed(2);
+  const scCol=light?'#A8A49E':'#5C5852';
+  // Target marker position on arc
+  const targetPct=max>0?Math.min(target/max,1):0;
+  const targetAngle=Math.PI+targetPct*Math.PI;
+  const tix=cx+R*Math.cos(targetAngle),tiy=cy+R*Math.sin(targetAngle);
+  const tox=(cx+(R+SW/2+4)*Math.cos(targetAngle)).toFixed(1);
+  const toy=(cy+(R+SW/2+4)*Math.sin(targetAngle)).toFixed(1);
+  const tix2=(cx+(R-SW/2-4)*Math.cos(targetAngle)).toFixed(1);
+  const tiy2=(cy+(R-SW/2-4)*Math.sin(targetAngle)).toFixed(1);
+  let yoyH='';
+  if(yoy!==undefined&&yoy!==null){
+    const delta=value-yoy;const up=delta>=0;
+    yoyH='<div class="yoy-row">'+
+      '<div class="yoy-cell"><div class="yoy-lbl">YTD 2026</div><div class="yoy-num" style="color:'+col+'">'+dispVal+'</div></div>'+
+      '<div class="yoy-cell"><div class="yoy-lbl">YTD 2025</div><div class="yoy-num">'+yoy+'%</div></div>'+
+      '<div class="yoy-cell"><div class="yoy-lbl">vs 2025</div><div class="yoy-delta '+(up?'d-up':'d-dn')+'">'+(up?'&#9650;':'&#9660;')+' '+(up?'+':'')+Math.round(delta)+'%</div></div>'+
+      '</div>';
+  }
+  document.getElementById(id).innerHTML=
+    '<div class="gauge-svg-area">'+
+    '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="overflow:visible;display:block;margin:0 auto;">'+
+    '<path d="'+arcP(Math.PI,2*Math.PI)+'" fill="none" stroke="'+trackC+'" stroke-width="'+SW+'" stroke-linecap="butt"/>'+
+    '<path d="'+arcP(Math.PI,2*Math.PI)+'" fill="none" stroke="'+col+'" stroke-width="'+SW+'" stroke-linecap="butt" stroke-dasharray="'+fillLen+' 9999" stroke-dashoffset="0"/>'+
+    // Target tick mark
+    '<line x1="'+tix2+'" y1="'+tiy2+'" x2="'+tox+'" y2="'+toy+'" stroke="'+scCol+'" stroke-width="2" stroke-linecap="round"/>'+
+    '<text x="'+(cx-R-SW/2-6)+'" y="'+cy+'" text-anchor="end" dominant-baseline="middle" font-size="9" fill="'+scCol+'" font-family="ABCFavorit,sans-serif">0</text>'+
+    '<text x="'+(cx+R+SW/2+6)+'" y="'+cy+'" text-anchor="start" dominant-baseline="middle" font-size="9" fill="'+scCol+'" font-family="ABCFavorit,sans-serif" font-weight="600">100%</text>'+
+    '</svg>'+
+    '<div class="gauge-overlay">'+
+    '<div class="gauge-num" style="color:'+col+'">'+dispVal+'</div>'+
+    '<div class="gauge-sub">'+(sublabel||'')+'</div>'+
+    '</div>'+
+    '</div>'+
+    '<div class="gauge-meta"><span style="color:var(--text3)">Target</span> <span class="g-chip" style="color:var(--accent2);border-color:var(--accent)">'+target+'%</span><span class="g-note"> &mdash; '+Math.round(value/target*100)+'% achieved</span></div>'+
+    yoyH;
+}
 function drawGauge(id,value,max,sublabel,yoy,showPct){
   const pct=max>0?Math.min(1.05,value/max):0;
   const fillPct=Math.min(pct,1);
@@ -849,7 +920,13 @@ function renderSpecForecast(deals){
   const totalVal=open.reduce((a,d)=>a+(d.amount||0),0);
   const pct=totalVal>0?entroVal/totalVal:0;
   const stk=skk();const target=cfg.specTarget[stk]!==undefined?cfg.specTarget[stk]:(cfg.specTarget['ALL']||40);
-  drawGauge('spec-gauge-wrap',Math.round(pct*100),target||100,fmt$(entroVal)+' of '+fmt$(totalVal),null,true);
+  const specPct=Math.round(pct*100);
+  const vsSpecTarget=target>0?specPct/target:0;
+  let specCol='#C85A3A';
+  if(vsSpecTarget>=0.25&&vsSpecTarget<0.75)specCol='#D48020';
+  else if(vsSpecTarget>=0.75&&vsSpecTarget<1.0)specCol='#C8A800';
+  else if(vsSpecTarget>=1.0)specCol='#1D9E75';
+  drawGaugeColour('spec-gauge-wrap',specPct,100,target,specCol,fmt$(entroVal)+' of '+fmt$(totalVal),null);
 }
 function renderSpecRev(deals){try{
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won');
@@ -858,16 +935,34 @@ function renderSpecRev(deals){try{
   const pct=totalVal>0?entroVal/totalVal:0;
   const stk=skk();
   const yoy=get2025Comp('spec',stk);
-  drawGauge('specrev-gauge-wrap',Math.round(pct*100),100,fmt$(entroVal)+' of '+fmt$(totalVal)+' won',yoy,true);
+  const specRevPct=Math.round(pct*100);
+  const specRevTarget=100; // % to revenue target is always 100% (maximise it)
+  const vsRevTarget=specRevPct/100;
+  let revCol='#C85A3A';
+  if(vsRevTarget>=0.25&&vsRevTarget<0.75)revCol='#D48020';
+  else if(vsRevTarget>=0.75&&vsRevTarget<1.0)revCol='#C8A800';
+  else if(vsRevTarget>=1.0)revCol='#1D9E75';
+  drawGaugeColour('specrev-gauge-wrap',specRevPct,100,specRevTarget,revCol,fmt$(entroVal)+' of '+fmt$(totalVal)+' won',yoy);
 }catch(e){console.error('renderSpecRev:',e);document.getElementById('specrev-gauge-wrap').innerHTML='<div class="loading-state" style="height:120px"><span style="color:var(--text3);font-size:11px">Error loading data</span></div>';}}
 function renderStrike(deals){try{
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
   const lost=deals.filter(d=>d.stage==='2367434194'||d.stage==='Closed Lost').reduce((a,d)=>a+d.amount,0);
-  const total=won+lost,pct=total>0?Math.round((won/total)*100):0;
+  const total=won+lost;
+  // Raw strike rate % (e.g. 41%)
+  const strikeRate=total>0?Math.round((won/total)*100):0;
   const stk=skk();
   const yoy=get2025Comp('strike',stk);
+  // Target is the goal % (e.g. 40%) — arc goes from 0 to target, value shows where we are
   const strikeTarget=(cfg.strikeTarget&&cfg.strikeTarget[stk]!==undefined)?cfg.strikeTarget[stk]:(cfg.strikeTarget?.ALL||40);
-  drawGauge('strike-gauge-wrap',pct,strikeTarget,fmt$(won)+' won',yoy,true);
+  // Use 100 as max so arc always shows full 0-100% range with target marked
+  // Pass strikeRate as value and 100 as max — colour thresholds based on vs target
+  const vsTarget=strikeTarget>0?strikeRate/strikeTarget:0;
+  let gaugeCol='#C85A3A';
+  if(vsTarget>=0.25&&vsTarget<0.75)gaugeCol='#D48020';
+  else if(vsTarget>=0.75&&vsTarget<1.0)gaugeCol='#C8A800';
+  else if(vsTarget>=1.0)gaugeCol='#1D9E75';
+  // Draw gauge: value=strikeRate, max=100, but colour based on vs target
+  drawGaugeColour('strike-gauge-wrap',strikeRate,100,strikeTarget,gaugeCol,fmt$(won)+' won',yoy);
 }catch(e){console.error('renderStrike:',e);document.getElementById('strike-gauge-wrap').innerHTML='<div class="loading-state" style="height:120px"><span style="color:var(--text3);font-size:11px">Error loading data</span></div>';}}
 
 function selectState(state){activeState=state;document.querySelectorAll('.state-pill').forEach(p=>p.classList.toggle('active',p.dataset.state===state));renderAll();}
