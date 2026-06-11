@@ -254,7 +254,17 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
 
       <div class="tile" id="tile-pipeline" style="padding-bottom:18px;">
         <div class="t-accent"></div>
-        <div class="t-hdr"><div><div class="t-label">$ by Pipeline Stage</div><div class="t-val amber" id="t1-total">&#8212;</div></div></div>
+        <div class="t-hdr" style="align-items:flex-start;">
+          <div style="flex:1;">
+            <div class="t-label">$ by Pipeline Stage</div>
+            <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+              <div class="t-val amber" id="t1-total">&#8212;</div>
+              <div id="t1-delta" style="font-size:11px;font-weight:600;display:none;align-items:center;gap:4px;margin-bottom:2px;"></div>
+            </div>
+            <div id="t1-snapshot-date" style="font-size:10px;color:var(--text3);margin-top:2px;"></div>
+          </div>
+          <button class="mini-btn" onclick="resetPipelineSnapshot()" title="Reset snapshot to today" style="flex-shrink:0;margin-top:2px;">Reset</button>
+        </div>
         <div id="pipeline-content" style="flex:1;min-height:0;display:flex;flex-direction:column;"><div class="loading"><div class="spin"></div>Loading</div></div>
       </div>
 
@@ -455,7 +465,7 @@ function loadCfg(){
     if(p.specTarget)cfg.specTarget=Object.assign({},DEF.specTarget,p.specTarget);
     if(p.stageTargets)cfg.stageTargets=Object.assign({},DEF.stageTargets,p.stageTargets);
     if(p.forecastTargets)cfg.forecastTargets=p.forecastTargets;
-    if(p.ytd2025)cfg.ytd2025={spec:Object.assign({},DEF.ytd2025.spec,p.ytd2025.spec||{}),strike:Object.assign({},DEF.ytd2025.strike,p.ytd2025.strike||{}),won:Object.assign({},DEF.ytd2025.won,p.ytd2025.won||{})};
+    if(p.ytd2025)cfg.ytd2025={spec:Object.assign({},DEF.ytd2025.spec,p.ytd2025.spec||{}),strike:Object.assign({},DEF.ytd2025.strike,p.ytd2025.strike||{}),won:Object.assign({},DEF.ytd2025.won,p.ytd2025.won||{}),Q:p.ytd2025.Q||DEF.ytd2025.Q||{},M:p.ytd2025.M||DEF.ytd2025.M||{}};
   }catch(e){}
 }
 function saveCfg(){localStorage.setItem('entro_cfg4',JSON.stringify(cfg));}
@@ -539,12 +549,22 @@ async function fetchHubSpot(){
     const oMap={};(ownersData.results||[]).forEach(o=>{oMap[o.id]=o.firstName+' '+o.lastName;});
     hsDeals=allDeals.map(d=>({id:d.id,name:d.properties.dealname||'',owner:oMap[d.properties.hubspot_owner_id]||'Unknown',stage:d.properties.dealstage||'',amount:parseFloat(d.properties.amount||0),estimatedCloseDate:d.properties.estimated_close_date||d.properties.closedate||null,specStatus:(d.properties.entro_specification||d.properties.entro_spec||d.properties.specification_status__c||d.properties.specification_status||'').trim(),createDate:d.properties.hs_createdate||null}));
     // Fetch meetings via CRM engagements API v2 (works with timeline scope)
-    // Fetch all meetings with pagination — need hs_activity_type for Deep Discovery matching
-    let allMeetings=[],mAfter=undefined,mPages=0;
-    while(mPages<20){
-      let mUrl='https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/meetings?limit=100&properties=hs_meeting_title,hubspot_owner_id,hs_timestamp,hs_activity_type,hs_createdate';
-      if(mAfter)mUrl+='&after='+mAfter;
-      const er=await fetchT(mUrl,{headers:{'Authorization':'Bearer '+cfg.hsToken}},10000);
+    // Fetch Deep Discovery meetings via POST search (more reliable than GET pagination)
+    let allMeetings=[];
+    // First: get all Deep Discovery meetings specifically
+    let mAfter=undefined,mPages=0;
+    while(mPages<10){
+      const mBody={
+        filterGroups:[{filters:[{propertyName:'hs_activity_type',operator:'EQ',value:'Deep Discovery'}]}],
+        properties:['hs_activity_type','hs_timestamp','hubspot_owner_id','hs_createdate'],
+        limit:100
+      };
+      if(mAfter)mBody.after=mAfter;
+      const er=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/meetings/search',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
+        body:JSON.stringify(mBody)
+      },10000);
       if(!er.ok)break;
       const ed=await er.json();
       allMeetings=allMeetings.concat(ed.results||[]);
@@ -556,6 +576,7 @@ async function fetchHubSpot(){
       type:e.properties?.hs_activity_type||'',
       date:e.properties?.hs_timestamp||e.properties?.hs_createdate||null
     }));
+    console.log('Deep Discovery meetings loaded:',hsMeetings.length);
     console.log('Meetings loaded:',hsMeetings.length,'| Types found:',[...new Set(hsMeetings.map(m=>m.type))].join(', '));
     isLive=true;updateStatus();
   }catch(err){console.error(err);isLive=false;updateStatus();const el=document.getElementById('hs-connect-status');if(el){el.textContent='Error: '+err.message;el.style.color='var(--red)';}}
@@ -564,20 +585,30 @@ function updateStatus(){document.getElementById('hs-dot').className='sdot'+(isLi
 async function fetchAllData(){await fetchHubSpot();renderAll();}
 
 function get2025Comp(metric,stk){
-  // Returns the matching 2025 comparison value for the current date context
-  // Uses monthly data for MTD, quarterly for QTD, full year for YTD
-  const now=NOW;
-  const curMonth=now.toLocaleString('en-AU',{month:'short'});
-  const curQ='Q'+Math.ceil((now.getMonth()+1)/3);
-  const state=stk==='ALL'?'ALL':(cfg.ytd2025.M[stk]?stk:'ALL');
-  // Try monthly first, then quarterly, then annual
-  const mData=cfg.ytd2025.M[state]?.[curMonth];
-  const qData=cfg.ytd2025.Q[state]?.[curQ];
-  const yData=cfg.ytd2025[metric]?.[stk];
-  // Return same-month figure as most relevant comparison
-  if(mData&&mData[metric]!==undefined) return mData[metric];
-  if(qData&&qData[metric]!==undefined) return qData[metric];
-  return yData!==undefined?yData:cfg.ytd2025[metric]['ALL'];
+  try{
+    const ytd=cfg.ytd2025||{};
+    const M=ytd.M||{};
+    const Q=ytd.Q||{};
+    const curMonth=NOW.toLocaleString('en-AU',{month:'short'});
+    const curQ='Q'+Math.ceil((NOW.getMonth()+1)/3);
+    const state=(stk&&M[stk])?stk:'ALL';
+    // Try monthly → quarterly → annual fallback chain
+    const mVal=M[state]?.[curMonth]?.[metric];
+    const qVal=Q[state]?.[curQ]?.[metric];
+    const yVal=(ytd[metric]||{})[stk]!==undefined?(ytd[metric]||{})[stk]:(ytd[metric]||{})['ALL'];
+    if(mVal!==undefined&&mVal!==null) return mVal;
+    if(qVal!==undefined&&qVal!==null) return qVal;
+    return yVal||0;
+  }catch(e){
+    // Safe fallback — return annual figure
+    return((cfg.ytd2025||{})[metric]||{})[stk]||((cfg.ytd2025||{})[metric]||{})['ALL']||0;
+  }
+}
+function resetPipelineSnapshot(){
+  // Clear snapshot for current state so it resets on next render
+  const SNAP_KEY='entro_pipeline_snap_'+skk();
+  localStorage.removeItem(SNAP_KEY);
+  renderAll();
 }
 function renderAll(){const deals=hsDeals.filter(sfilt);renderPipeline(deals);renderForecast(deals);renderDeepDisc();renderSpecForecast(deals);renderSpecRev(deals);renderStrike(deals);}
 
@@ -598,6 +629,37 @@ function renderPipeline(deals){
   deals.forEach(d=>{if(sd.hasOwnProperty(d.stage))sd[d.stage]+=d.amount;});
   const total=Object.values(sd).reduce((a,b)=>a+b,0);
   document.getElementById('t1-total').textContent=fmt$(total);
+
+  // ── Pipeline snapshot & delta ───────────────────────────────
+  const SNAP_KEY='entro_pipeline_snap_'+skk();
+  const NOW_TS=Date.now();
+  const ONE_DAY=86400000;
+  let snap=null;
+  try{ snap=JSON.parse(localStorage.getItem(SNAP_KEY)||'null'); }catch(e){}
+
+  // Save a new snapshot if none exists or it's older than 24h
+  if(!snap||!snap.ts||(NOW_TS-snap.ts)>ONE_DAY){
+    const newSnap={ts:NOW_TS,total:total,stages:{}};
+    cfg.pipelineStages.forEach(s=>newSnap.stages[s]=sd[s]||0);
+    try{ localStorage.setItem(SNAP_KEY,JSON.stringify(newSnap)); }catch(e){}
+    snap=null; // No comparison yet — just saved first snapshot
+  }
+
+  const deltaEl=document.getElementById('t1-delta');
+  const dateEl=document.getElementById('t1-snapshot-date');
+  if(snap&&snap.total&&deltaEl){
+    const diff=total-snap.total;
+    const pct=snap.total>0?Math.round((diff/snap.total)*100):0;
+    const up=diff>=0;
+    const snapDate=new Date(snap.ts).toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+    deltaEl.style.display='flex';
+    deltaEl.style.color=up?'var(--green)':'var(--red)';
+    deltaEl.innerHTML=(up?'&#9650;':'&#9660;')+' '+fmt$(Math.abs(diff))+' ('+Math.abs(pct)+'%) since '+snapDate;
+    if(dateEl) dateEl.textContent='Snapshot: '+snapDate;
+  } else if(deltaEl){
+    deltaEl.style.display='none';
+    if(dateEl) dateEl.textContent='Snapshot saved — delta shows on next load';
+  }
   const mx=Math.max(...Object.values(sd),1);
   let h='<div class="stage-list" style="flex:1;min-height:0;display:flex;flex-direction:column;">';
   cfg.pipelineStages.forEach(s=>{
@@ -754,14 +816,14 @@ function drawGauge(id,value,max,sublabel,yoy,showPct){
     '<path d="'+arcP(Math.PI,2*Math.PI)+'" fill="none" stroke="'+col+'" stroke-width="'+SW+'" stroke-linecap="butt" stroke-dasharray="'+fillLen+' 9999" stroke-dashoffset="0"/>'+
     // Scale: 0 and 100 labels at arc ends, outside
     '<text x="'+(cx-R-SW/2-6)+'" y="'+cy+'" text-anchor="end" dominant-baseline="middle" font-size="9" fill="'+scCol+'" font-family="ABCFavorit,sans-serif">0</text>'+
-    '<text x="'+(cx+R+SW/2+6)+'" y="'+cy+'" text-anchor="start" dominant-baseline="middle" font-size="9" fill="'+scCol+'" font-family="ABCFavorit,sans-serif">'+(showPct?'100%':max)+'</text>'+
+    '<text x="'+(cx+R+SW/2+6)+'" y="'+cy+'" text-anchor="start" dominant-baseline="middle" font-size="9" fill="'+scCol+'" font-family="ABCFavorit,sans-serif" font-weight="600">'+(showPct?max+'%':max)+'</text>'+
     '</svg>'+
     '<div class="gauge-overlay">'+
     '<div class="gauge-num" style="color:'+col+'">'+dispVal+'</div>'+
     '<div class="gauge-sub">'+(sublabel||'')+'</div>'+
     '</div>'+
     '</div>'+
-    '<div class="gauge-meta">Target <span class="g-chip">'+(showPct?max+'%':max)+'</span><span class="g-note">'+Math.round(pct*100)+'% of target</span></div>'+
+    '<div class="gauge-meta"><span style="color:var(--text3)">Target</span> <span class="g-chip" style="color:var(--accent2);border-color:var(--accent)">'+(showPct?max+'%':max)+'</span><span class="g-note"> &mdash; '+Math.round(pct*100)+'% achieved</span></div>'+
     yoyH;
 }
 function setDeepPeriod(p,btn){
@@ -787,7 +849,7 @@ function renderSpecForecast(deals){
   const stk=skk();const target=cfg.specTarget[stk]!==undefined?cfg.specTarget[stk]:(cfg.specTarget['ALL']||40);
   drawGauge('spec-gauge-wrap',Math.round(pct*100),target||100,fmt$(entroVal)+' of '+fmt$(totalVal),null,true);
 }
-function renderSpecRev(deals){
+function renderSpecRev(deals){try{
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won');
   const entroVal=won.filter(d=>d.specStatus==='Entro Spec'||d.specStatus==='Spec').reduce((a,d)=>a+(d.amount||0),0);
   const totalVal=won.reduce((a,d)=>a+(d.amount||0),0);
@@ -795,15 +857,15 @@ function renderSpecRev(deals){
   const stk=skk();
   const yoy=get2025Comp('spec',stk);
   drawGauge('specrev-gauge-wrap',Math.round(pct*100),100,fmt$(entroVal)+' of '+fmt$(totalVal)+' won',yoy,true);
-}
-function renderStrike(deals){
+}catch(e){console.error('renderSpecRev:',e);document.getElementById('specrev-gauge-wrap').innerHTML='<div class="loading-state" style="height:120px"><span style="color:var(--text3);font-size:11px">Error loading data</span></div>';}}
+function renderStrike(deals){try{
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
   const lost=deals.filter(d=>d.stage==='2367434194'||d.stage==='Closed Lost').reduce((a,d)=>a+d.amount,0);
   const total=won+lost,pct=total>0?Math.round((won/total)*100):0;
   const stk=skk();
   const yoy=get2025Comp('strike',stk);
   drawGauge('strike-gauge-wrap',pct,100,fmt$(won)+' won',yoy,true);
-}
+}catch(e){console.error('renderStrike:',e);document.getElementById('strike-gauge-wrap').innerHTML='<div class="loading-state" style="height:120px"><span style="color:var(--text3);font-size:11px">Error loading data</span></div>';}}
 
 function selectState(state){activeState=state;document.querySelectorAll('.state-pill').forEach(p=>p.classList.toggle('active',p.dataset.state===state));renderAll();}
 function toggleTheme(){const was=isLight();if(was)document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme','light');localStorage.setItem('entro_theme',was?'dark':'light');if(CHARTS.forecast){CHARTS.forecast.destroy();delete CHARTS.forecast;}renderAll();}
