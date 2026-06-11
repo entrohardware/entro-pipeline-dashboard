@@ -520,27 +520,54 @@ async function fetchHubSpot(){
     }
 
     document.getElementById('hs-connect-status').textContent='Loading won/lost deals…';
-    // FETCH 2: Won/Lost — Sales pipeline only, closed from Jan 2026 onwards
-    // Uses createdate as the filter since closedate can be wrong on Pipedrive imports
+    // FETCH 2: Won/Lost — filter by date ENTERED Won/Lost stage in 2026
+    // Uses hs_v2_date_entered_{stageId} which HubSpot sets automatically
+    // when a deal moves into that stage — immune to Pipedrive import corruption
+    const wonStageEntryProp='hs_v2_date_entered_2367434193';
+    const lostStageEntryProp='hs_v2_date_entered_2367434194';
+
+    // Fetch Won deals that entered Won stage from Jan 2026
     let p2=0,a2=undefined;
     while(p2<20){
       const body={
         filterGroups:[{filters:[
           {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
-          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES},
-          {propertyName:'createdate',operator:'GTE',value:HS_START_TS}
+          {propertyName:'dealstage',operator:'EQ',value:'2367434193'},
+          {propertyName:wonStageEntryProp,operator:'GTE',value:HS_START_TS}
         ]}],
-        properties:PROPS,sorts:[],limit:100
+        properties:[...PROPS, wonStageEntryProp],sorts:[],limit:100
       };
       if(a2)body.after=a2;
       const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
         method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
         body:JSON.stringify(body)
       },20000);
-      if(!r.ok)throw new Error('Closed fetch '+r.status);
+      if(!r.ok)throw new Error('Won fetch '+r.status);
       const d=await r.json();
       allDeals=allDeals.concat(d.results||[]);
       if(d.paging?.next?.after){a2=d.paging.next.after;p2++;}else break;
+    }
+
+    // Fetch Lost deals that entered Lost stage from Jan 2026
+    let p3=0,a3=undefined;
+    while(p3<20){
+      const body={
+        filterGroups:[{filters:[
+          {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
+          {propertyName:'dealstage',operator:'EQ',value:'2367434194'},
+          {propertyName:lostStageEntryProp,operator:'GTE',value:HS_START_TS}
+        ]}],
+        properties:[...PROPS, lostStageEntryProp],sorts:[],limit:100
+      };
+      if(a3)body.after=a3;
+      const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
+        method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      },20000);
+      if(!r.ok)throw new Error('Lost fetch '+r.status);
+      const d=await r.json();
+      allDeals=allDeals.concat(d.results||[]);
+      if(d.paging?.next?.after){a3=d.paging.next.after;p3++;}else break;
     }
     document.getElementById('hs-connect-status').textContent='Loading owners & meetings…';
     // Fetch owners to map IDs to names
@@ -587,23 +614,15 @@ function updateStatus(){document.getElementById('hs-dot').className='sdot'+(isLi
 async function fetchAllData(){await fetchHubSpot();renderAll();}
 
 function get2025Comp(metric,stk){
+  // Always use full-year 2025 figure for YOY comparison
+  // Monthly matching is too volatile (small sample sizes skew %)
   try{
     const ytd=cfg.ytd2025||{};
-    const M=ytd.M||{};
-    const Q=ytd.Q||{};
-    const curMonth=NOW.toLocaleString('en-AU',{month:'short'});
-    const curQ='Q'+Math.ceil((NOW.getMonth()+1)/3);
-    const state=(stk&&M[stk])?stk:'ALL';
-    // Try monthly → quarterly → annual fallback chain
-    const mVal=M[state]?.[curMonth]?.[metric];
-    const qVal=Q[state]?.[curQ]?.[metric];
-    const yVal=(ytd[metric]||{})[stk]!==undefined?(ytd[metric]||{})[stk]:(ytd[metric]||{})['ALL'];
-    if(mVal!==undefined&&mVal!==null) return mVal;
-    if(qVal!==undefined&&qVal!==null) return qVal;
-    return yVal||0;
+    const stateVal=(ytd[metric]||{})[stk];
+    const allVal=(ytd[metric]||{})['ALL'];
+    return stateVal!==undefined?stateVal:(allVal||0);
   }catch(e){
-    // Safe fallback — return annual figure
-    return((cfg.ytd2025||{})[metric]||{})[stk]||((cfg.ytd2025||{})[metric]||{})['ALL']||0;
+    return 0;
   }
 }
 function resetPipelineSnapshot(){
@@ -797,8 +816,9 @@ function renderForecast(deals){
 
 // Extended gauge with explicit colour and target marker line on arc
 function drawGaugeColour(id,value,max,target,col,sublabel,yoy){
-  const pct=max>0?Math.min(1.05,value/max):0;
-  const fillPct=Math.min(pct,1);
+  // Arc spans 0 → target. Fill shows value within that range.
+  // e.g. value=28, target=40: fill = 28/40 = 70% of arc
+  const fillPct=target>0?Math.min(value/target,1.05):0;
   const W=220,H=130,cx=110,cy=108,R=88,SW=14;
   const light=isLight();
   const trackC=light?'#E0DDD6':'#222222';
@@ -810,16 +830,8 @@ function drawGaugeColour(id,value,max,target,col,sublabel,yoy){
     return'M'+x1.toFixed(2)+' '+y1.toFixed(2)+' A'+R+' '+R+' 0 '+lg+' 1 '+x2.toFixed(2)+' '+y2.toFixed(2);
   }
   const arcLen=(Math.PI*R).toFixed(2);
-  const fillLen=(fillPct*Math.PI*R).toFixed(2);
+  const fillLen=(Math.min(fillPct,1)*Math.PI*R).toFixed(2);
   const scCol=light?'#A8A49E':'#5C5852';
-  // Target marker position on arc
-  const targetPct=max>0?Math.min(target/max,1):0;
-  const targetAngle=Math.PI+targetPct*Math.PI;
-  const tix=cx+R*Math.cos(targetAngle),tiy=cy+R*Math.sin(targetAngle);
-  const tox=(cx+(R+SW/2+4)*Math.cos(targetAngle)).toFixed(1);
-  const toy=(cy+(R+SW/2+4)*Math.sin(targetAngle)).toFixed(1);
-  const tix2=(cx+(R-SW/2-4)*Math.cos(targetAngle)).toFixed(1);
-  const tiy2=(cy+(R-SW/2-4)*Math.sin(targetAngle)).toFixed(1);
   let yoyH='';
   if(yoy!==undefined&&yoy!==null){
     const delta=value-yoy;const up=delta>=0;
@@ -832,19 +844,20 @@ function drawGaugeColour(id,value,max,target,col,sublabel,yoy){
   document.getElementById(id).innerHTML=
     '<div class="gauge-svg-area">'+
     '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="overflow:visible;display:block;margin:0 auto;">'+
+    // Track (full arc = target range)
     '<path d="'+arcP(Math.PI,2*Math.PI)+'" fill="none" stroke="'+trackC+'" stroke-width="'+SW+'" stroke-linecap="butt"/>'+
-    '<path d="'+arcP(Math.PI,2*Math.PI)+'" fill="none" stroke="'+col+'" stroke-width="'+SW+'" stroke-linecap="butt" stroke-dasharray="'+fillLen+' 9999" stroke-dashoffset="0"/>'+
-    // Target tick mark
-    '<line x1="'+tix2+'" y1="'+tiy2+'" x2="'+tox+'" y2="'+toy+'" stroke="'+scCol+'" stroke-width="2" stroke-linecap="round"/>'+
+    // Fill (value proportion of target)
+    '<path d="'+arcP(Math.PI,2*Math.PI)+'" fill="none" stroke="'+col+'" stroke-width="'+SW+'" stroke-linecap="butt" stroke-dasharray="'+fillLen+' 9999"/>'+
+    // Scale: 0 on left, target% on right
     '<text x="'+(cx-R-SW/2-6)+'" y="'+cy+'" text-anchor="end" dominant-baseline="middle" font-size="9" fill="'+scCol+'" font-family="ABCFavorit,sans-serif">0</text>'+
-    '<text x="'+(cx+R+SW/2+6)+'" y="'+cy+'" text-anchor="start" dominant-baseline="middle" font-size="9" fill="'+scCol+'" font-family="ABCFavorit,sans-serif" font-weight="600">100%</text>'+
+    '<text x="'+(cx+R+SW/2+6)+'" y="'+cy+'" text-anchor="start" dominant-baseline="middle" font-size="9" fill="'+col+'" font-family="ABCFavorit,sans-serif" font-weight="700">'+target+'%</text>'+
     '</svg>'+
     '<div class="gauge-overlay">'+
     '<div class="gauge-num" style="color:'+col+'">'+dispVal+'</div>'+
     '<div class="gauge-sub">'+(sublabel||'')+'</div>'+
     '</div>'+
     '</div>'+
-    '<div class="gauge-meta"><span style="color:var(--text3)">Target</span> <span class="g-chip" style="color:var(--accent2);border-color:var(--accent)">'+target+'%</span><span class="g-note"> &mdash; '+Math.round(value/target*100)+'% achieved</span></div>'+
+    '<div class="gauge-meta"><span style="color:var(--text3)">Target</span> <span class="g-chip" style="color:var(--accent2);border-color:var(--accent)">'+target+'%</span><span class="g-note"> &mdash; '+Math.round(fillPct*100)+'% of target</span></div>'+
     yoyH;
 }
 function drawGauge(id,value,max,sublabel,yoy,showPct){
