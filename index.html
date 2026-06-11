@@ -552,6 +552,63 @@ async function fetchHubSpot(){
       allDeals=allDeals.concat(filtered);
       if(d.paging?.next?.after){a2=d.paging.next.after;p2++;}else break;
     }
+
+    // Fetch owners to map IDs to names
+    document.getElementById('hs-connect-status').textContent='Loading owners & meetings…';
+    const ownersResp=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/owners?limit=100',{
+      headers:{'Authorization':'Bearer '+cfg.hsToken}
+    });
+    const ownersData=ownersResp.ok?await ownersResp.json():{results:[]};
+    const oMap={};(ownersData.results||[]).forEach(o=>{oMap[o.id]=o.firstName+' '+o.lastName;});
+
+    // Normalise deals
+    hsDeals=allDeals.map(d=>({
+      id:d.id,
+      name:d.properties.dealname||'',
+      owner:oMap[d.properties.hubspot_owner_id]||'Unknown',
+      stage:d.properties.dealstage||'',
+      amount:parseFloat(d.properties.amount||0),
+      estimatedCloseDate:d.properties.estimated_close_date||d.properties.closedate||null,
+      specStatus:(d.properties.entro_specification||d.properties.entro_spec||d.properties.specification_status__c||d.properties.specification_status||'').trim(),
+      createDate:d.properties.createdate||null
+    }));
+
+    // Fetch Deep Discovery meetings
+    let allMeetings=[],mAfter=undefined,mPages=0;
+    while(mPages<10){
+      const mBody={
+        filterGroups:[{filters:[{propertyName:'hs_activity_type',operator:'EQ',value:'Deep Discovery'}]}],
+        properties:['hs_activity_type','hs_timestamp','hubspot_owner_id','hs_createdate'],
+        limit:100
+      };
+      if(mAfter)mBody.after=mAfter;
+      const er=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/meetings/search',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
+        body:JSON.stringify(mBody)
+      },10000);
+      if(!er.ok)break;
+      const ed=await er.json();
+      allMeetings=allMeetings.concat(ed.results||[]);
+      if(ed.paging?.next?.after){mAfter=ed.paging.next.after;mPages++;}else break;
+    }
+    hsMeetings=allMeetings.map(e=>({
+      id:e.id,
+      owner:oMap[e.properties?.hubspot_owner_id]||e.properties?.hubspot_owner_id||'Unknown',
+      type:e.properties?.hs_activity_type||'',
+      date:e.properties?.hs_timestamp||e.properties?.hs_createdate||null
+    }));
+    console.log('Deep Discovery meetings loaded:',hsMeetings.length);
+
+    isLive=true;updateStatus();
+
+  }catch(err){
+    console.error(err);isLive=false;updateStatus();
+    const el=document.getElementById('hs-connect-status');
+    if(el){el.textContent='Error: '+err.message;el.style.color='var(--red)';}
+  }
+}
+
 function updateStatus(){document.getElementById('hs-dot').className='sdot'+(isLive?' live':'');document.getElementById('hs-status-text').textContent=isLive?'Live \u2014 HubSpot':'Demo data';}
 async function fetchAllData(){await fetchHubSpot();renderAll();}
 
