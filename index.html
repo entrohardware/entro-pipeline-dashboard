@@ -390,7 +390,7 @@ const DEF={
   pipelineStages:['2612273595','2367434189','2367434190','2367434191','2367434192','2369507813','2369507814','2369507815'],
   ownerMap:{'Patrick Goldsmith':'VIC','Daniel Marrone':'NSW','Leigan Paterson':'QLD','Andrew McKay':'SA','Quincy Smith':'WA'},
   deepTargets:{week:{ALL:2,VIC:1,NSW:1,QLD:1,SA:1,WA:0,TAS:0,ACT:0,NT:0},month:{ALL:8,VIC:2,NSW:2,QLD:2,SA:1,WA:1,TAS:0,ACT:0,NT:0},quarter:{ALL:24,VIC:6,NSW:6,QLD:6,SA:3,WA:2,TAS:1,ACT:0,NT:0},ytd:{ALL:48,VIC:12,NSW:12,QLD:12,SA:6,WA:4,TAS:1,ACT:1,NT:0}},
-  specTarget:{ALL:40,VIC:40,NSW:40,QLD:40,SA:40,WA:30,TAS:30,ACT:30,NT:20},
+  specTarget:{ALL:80,VIC:80,NSW:80,QLD:80,SA:80,WA:80,TAS:80,ACT:80,NT:80},
   strikeTarget:{ALL:40,VIC:40,NSW:40,QLD:40,SA:40,WA:30,TAS:30,ACT:30,NT:20},
   stageTargets:{'2612273595':2000000,'2367434189':3000000,'2367434190':1500000,'2367434191':500000,'2367434192':800000,'2369507813':5000000,'2369507814':8000000,'2369507815':1000000},
   forecastTargets:{},
@@ -943,19 +943,28 @@ function renderDeepDisc(){
   drawGauge('deep-gauge-wrap',count,target||1,deepPeriod.toUpperCase(),null,false);
 }
 function renderSpecForecast(deals){
-  const open=deals.filter(d=>d.stage!=='2367434193'&&d.stage!=='Project Handover/Won'&&d.stage!=='2367434194'&&d.stage!=='Closed Lost');
-  const entroVal=open.filter(d=>d.specStatus==='Entro Spec'||d.specStatus==='Spec').reduce((a,d)=>a+(d.amount||0),0);
-  const specVal=open.filter(d=>d.specStatus==='Entro Spec'||d.specStatus==='D&C Spec'||d.specStatus==='VE Project').reduce((a,d)=>a+(d.amount||0),0);
-  const totalVal=open.reduce((a,d)=>a+(d.amount||0),0);
+  // Only count qualified stages: Prepare Schedule and beyond
+  // Exclude: Prospecting Lead, Intro Discovery (SQL), Deep Discovery
+  const EXCLUDED_STAGES=[
+    '2612273595', // Prospecting Lead
+    '2367434189', // Intro Discovery (SQL)
+    '2367434190', // Deep Discovery
+    '2367434193', // Project Handover/Won (exclude from open pipeline)
+    '2367434194'  // Closed Lost
+  ];
+  const qualified=deals.filter(d=>!EXCLUDED_STAGES.includes(d.stage));
+  const entroVal=qualified.filter(d=>d.specStatus==='Entro Spec'||d.specStatus==='Spec').reduce((a,d)=>a+(d.amount||0),0);
+  const totalVal=qualified.reduce((a,d)=>a+(d.amount||0),0);
   const pct=totalVal>0?entroVal/totalVal:0;
-  const stk=skk();const target=cfg.specTarget[stk]!==undefined?cfg.specTarget[stk]:(cfg.specTarget['ALL']||40);
+  const stk=skk();
+  const target=cfg.specTarget[stk]!==undefined?cfg.specTarget[stk]:(cfg.specTarget['ALL']||40);
   const specPct=Math.round(pct*100);
   const vsSpecTarget=target>0?specPct/target:0;
   let specCol='#C85A3A';
   if(vsSpecTarget>=0.25&&vsSpecTarget<0.75)specCol='#D48020';
   else if(vsSpecTarget>=0.75&&vsSpecTarget<1.0)specCol='#C8A800';
   else if(vsSpecTarget>=1.0)specCol='#1D9E75';
-  drawGaugeColour('spec-gauge-wrap',specPct,100,target,specCol,fmt$(entroVal)+' of '+fmt$(totalVal),null);
+  drawGaugeColour('spec-gauge-wrap',specPct,100,target,specCol,fmt$(entroVal)+' of '+fmt$(totalVal)+' qualified',null);
 }
 function renderSpecRev(deals){try{
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won');
