@@ -350,6 +350,7 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
       <div class="tab-pane" id="tab-targets">
         <div class="m-sect"><div class="sect-ttl">Deep Discovery Targets</div><div id="deep-target-rows"></div></div>
         <div class="m-sect"><div class="sect-ttl">Spec % Forecast Target</div><div id="spec-target-rows"></div></div>
+        <div class="m-sect"><div class="sect-ttl">Spec % to Revenue Target</div><div id="specrev-target-rows"></div></div>
         <div class="m-sect"><div class="sect-ttl">Strike Rate Target</div><div id="strike-target-rows"></div></div>
         <div class="m-sect"><div class="sect-ttl">Pipeline Stage $ Targets</div><div id="stage-target-rows"></div></div>
         <div class="m-sect"><div class="sect-ttl">Monthly Forecast $ Targets</div><div id="forecast-target-rows"></div></div>
@@ -391,6 +392,7 @@ const DEF={
   ownerMap:{'Patrick Goldsmith':'VIC','Daniel Marrone':'NSW','Leigan Paterson':'QLD','Andrew McKay':'SA','Quincy Smith':'WA'},
   deepTargets:{week:{ALL:2,VIC:1,NSW:1,QLD:1,SA:1,WA:0,TAS:0,ACT:0,NT:0},month:{ALL:8,VIC:2,NSW:2,QLD:2,SA:1,WA:1,TAS:0,ACT:0,NT:0},quarter:{ALL:24,VIC:6,NSW:6,QLD:6,SA:3,WA:2,TAS:1,ACT:0,NT:0},ytd:{ALL:48,VIC:12,NSW:12,QLD:12,SA:6,WA:4,TAS:1,ACT:1,NT:0}},
   specTarget:{ALL:80,VIC:80,NSW:80,QLD:80,SA:80,WA:80,TAS:80,ACT:80,NT:80},
+  specRevTarget:{ALL:80,VIC:80,NSW:80,QLD:80,SA:80,WA:80,TAS:80,ACT:80,NT:80},
   strikeTarget:{ALL:40,VIC:40,NSW:40,QLD:40,SA:40,WA:30,TAS:30,ACT:30,NT:20},
   stageTargets:{'2612273595':2000000,'2367434189':3000000,'2367434190':1500000,'2367434191':500000,'2367434192':800000,'2369507813':5000000,'2369507814':8000000,'2369507815':1000000},
   forecastTargets:{},
@@ -974,8 +976,8 @@ function renderSpecRev(deals){try{
   const stk=skk();
   const yoy=get2025Comp('spec',stk);
   const specRevPct=Math.round(pct*100);
-  const specRevTarget=100; // % to revenue target is always 100% (maximise it)
-  const vsRevTarget=specRevPct/100;
+  const specRevTarget=(cfg.specRevTarget&&cfg.specRevTarget[stk]!==undefined)?cfg.specRevTarget[stk]:(cfg.specRevTarget?.ALL||80);
+  const vsRevTarget=specRevTarget>0?specRevPct/specRevTarget:0;
   let revCol='#C85A3A';
   if(vsRevTarget>=0.25&&vsRevTarget<0.75)revCol='#D48020';
   else if(vsRevTarget>=0.75&&vsRevTarget<1.0)revCol='#C8A800';
@@ -1022,6 +1024,8 @@ function populateSettings(){
   });
   const sc=document.getElementById('spec-target-rows');sc.innerHTML='';
   ALL_KEYS.forEach(stk=>{const v=cfg.specTarget[stk]!==undefined?cfg.specTarget[stk]:40;sc.innerHTML+=`<div class="s-row"><span class="s-lbl">${stk}</span><input type="number" class="s-inp" data-st="${stk}" value="${v}" min="0" max="100"></div>`;});
+  const srcr=document.getElementById('specrev-target-rows');if(srcr){srcr.innerHTML='';
+  ALL_KEYS.forEach(stk=>{const v=(cfg.specRevTarget&&cfg.specRevTarget[stk]!==undefined)?cfg.specRevTarget[stk]:80;srcr.innerHTML+=`<div class="s-row"><span class="s-lbl">${stk}</span><input type="number" class="s-inp" data-specrev="${stk}" value="${v}" min="0" max="100"></div>`;});}
   const strc=document.getElementById('strike-target-rows');if(strc){strc.innerHTML='';
   ALL_KEYS.forEach(stk=>{const v=(cfg.strikeTarget&&cfg.strikeTarget[stk]!==undefined)?cfg.strikeTarget[stk]:40;strc.innerHTML+=`<div class="s-row"><span class="s-lbl">${stk}</span><input type="number" class="s-inp" data-strike="${stk}" value="${v}" min="0" max="100"></div>`;});}
   const stc=document.getElementById('stage-target-rows');stc.innerHTML='';
@@ -1067,6 +1071,8 @@ function saveSettings(){
   document.querySelectorAll('[data-pi]').forEach(el=>{cfg.pipelineStages[parseInt(el.dataset.pi)]=el.value.trim();});
   document.querySelectorAll('[data-dp]').forEach(el=>{const p=el.dataset.dp,s=el.dataset.ds;if(!cfg.deepTargets[p])cfg.deepTargets[p]={};cfg.deepTargets[p][s]=parseInt(el.value)||0;});
   document.querySelectorAll('[data-st]').forEach(el=>{cfg.specTarget[el.dataset.st]=parseInt(el.value)||40;});
+  if(!cfg.specRevTarget)cfg.specRevTarget={};
+  document.querySelectorAll('[data-specrev]').forEach(el=>{cfg.specRevTarget[el.dataset.specrev]=parseInt(el.value)||80;});
   if(!cfg.strikeTarget)cfg.strikeTarget={};
   document.querySelectorAll('[data-strike]').forEach(el=>{cfg.strikeTarget[el.dataset.strike]=parseInt(el.value)||40;});
   document.querySelectorAll('[data-sg]').forEach(el=>{cfg.stageTargets[el.dataset.sg]=parseInt(el.value)||0;});
@@ -1133,6 +1139,11 @@ document.getElementById('modal').addEventListener('click',function(e){if(e.targe
   const t=localStorage.getItem('entro_theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');
   document.getElementById('topbar-date').textContent=NOW.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   loadCfg();updateStatus();renderAll();
+  // Auto-connect if token was previously saved
+  if(cfg.hsToken && cfg.hsToken.startsWith('pat-')){
+    console.log('Auto-connecting to HubSpot...');
+    fetchAllData();
+  }
   setInterval(()=>{if(isLive)fetchAllData();},5*60*1000);
 })();
 </script>
