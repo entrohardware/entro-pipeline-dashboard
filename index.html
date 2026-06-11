@@ -520,14 +520,17 @@ async function fetchHubSpot(){
 
     // Static deals injected after normalisation below
 
-    // Live Feb 13+ deals from HubSpot API
+    // Live Feb 13+ deals — use closedate >= Feb 13 as server filter
+    // This avoids paginating through 800+ old deals to find the 37 genuine ones
+    const FEB_13_TS=String(new Date('2026-02-13T00:00:00.000Z').getTime());
     let p2=0,a2=undefined;
     while(p2<20){
       const body={
         filterGroups:[{filters:[
           {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
           {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES},
-          {propertyName:'amount',operator:'GTE',value:'10000'}
+          {propertyName:'amount',operator:'GTE',value:'10000'},
+          {propertyName:'closedate',operator:'GTE',value:FEB_13_TS}
         ]}],
         properties:[...PROPS,'closedate',ENTERED_WON_PROP,ENTERED_LOST_PROP],
         sorts:[],limit:100
@@ -537,16 +540,9 @@ async function fetchHubSpot(){
         method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
         body:JSON.stringify(body)
       },20000);
-      if(!r.ok)throw new Error('Won/Lost fetch '+r.status);
+      if(!r.ok)throw new Error('Won/Lost live fetch '+r.status);
       const d=await r.json();
-      const filtered=(d.results||[]).filter(deal=>{
-        const ew=deal.properties?.[ENTERED_WON_PROP];
-        const el=deal.properties?.[ENTERED_LOST_PROP];
-        const entered=ew||el;
-        if(!entered)return false;
-        return new Date(entered).getTime()>=FEB_13_2026;
-      });
-      allDeals=allDeals.concat(filtered);
+      allDeals=allDeals.concat(d.results||[]);
       if(d.paging?.next?.after){a2=d.paging.next.after;p2++;}else break;
     }
 
