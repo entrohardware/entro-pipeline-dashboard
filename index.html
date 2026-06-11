@@ -395,31 +395,13 @@ const DEF={
   stageTargets:{'2612273595':2000000,'2367434189':3000000,'2367434190':1500000,'2367434191':500000,'2367434192':800000,'2369507813':5000000,'2369507814':8000000,'2369507815':1000000},
   forecastTargets:{},
   ytd2025:{
-    // Calculated from Pipedrive export (deals >= $10k, Jan-May 2025 YTD)
-    // These update automatically as 2026 progresses through each month
-    // Full year 2025: Won $4.89M | Strike 18.3% | Spec% 41.5%
-    // YTD Jan-May 2025: Won $1.69M | Strike 17.9% | Spec% 30.5%
+    // Calculated from Pipedrive export (deals >= $10k, Jan-May 2025)
+    // 2025 uses full Jan-May period (no bulk import issue)
+    // 2026 uses Jan 1-Feb 12 closedate + Feb 13+ entered_won date
     spec:  {ALL:30.5,VIC:32.7,NSW:31.0,QLD:36.0,SA:0.0, WA:0.0, TAS:0,ACT:0,NT:0},
     strike:{ALL:17.9,VIC:19.6,NSW:12.5,QLD:21.3,SA:21.9,WA:42.1,TAS:0,ACT:0,NT:0},
     won:   {ALL:1.690,VIC:1.101,NSW:0.314,QLD:0.161,SA:0.099,WA:0.015,TAS:0,ACT:0,NT:0},
-    // Quarterly breakdowns (for QTD comparison)
-    Q:{
-      ALL: {Q1:{strike:15.6,spec:24.7,won:0.930},Q2:{strike:18.2,spec:53.3,won:1.127},Q3:{strike:25.7,spec:43.5,won:1.898},Q4:{strike:13.0,spec:39.9,won:0.937}},
-      VIC: {Q1:{strike:16.9,spec:25.6,won:0.613},Q2:{strike:23.4,spec:55.9,won:0.711},Q3:{strike:38.2,spec:53.3,won:0.872},Q4:{strike:21.2,spec:54.7,won:0.658}},
-      NSW: {Q1:{strike:8.5, spec:26.1,won:0.158},Q2:{strike:17.9,spec:56.0,won:0.280},Q3:{strike:21.7,spec:32.3,won:0.841},Q4:{strike:2.8, spec:0,   won:0.078}},
-      QLD: {Q1:{strike:20.7,spec:52.1,won:0.060},Q2:{strike:20.3,spec:39.0,won:0.122},Q3:{strike:19.0,spec:55.7,won:0.161},Q4:{strike:19.1,spec:7.1, won:0.202}},
-      SA:  {Q1:{strike:73.3,spec:0,   won:0.099},Q2:{strike:0,   spec:0,   won:0},    Q3:{strike:6.3, spec:0,   won:0.024},Q4:{strike:0,   spec:0,   won:0}},
-      WA:  {Q1:{strike:0,   spec:0,   won:0},    Q2:{strike:9.5, spec:0,   won:0.015},Q3:{strike:0,   spec:0,   won:0},    Q4:{strike:0,   spec:0,   won:0}}
-    },
-    // Monthly breakdowns (for MTD comparison)
-    M:{
-      ALL: {Jan:{strike:14.7,spec:7.3, won:0.252},Feb:{strike:16.9,spec:31.4,won:0.423},Mar:{strike:14.8,spec:30.8,won:0.256},Apr:{strike:17.4,spec:19.5,won:0.297},May:{strike:26.3,spec:49.3,won:0.462},Jun:{strike:13.4,spec:85.8,won:0.367},Jul:{strike:36.2,spec:49.6,won:1.001},Aug:{strike:8.0,spec:42.8,won:0.216},Sep:{strike:35.4,spec:34.9,won:0.682},Oct:{strike:11.5,spec:37.7,won:0.401},Nov:{strike:12.2,spec:35.0,won:0.300},Dec:{strike:18.8,spec:50.0,won:0.236}},
-      VIC: {Jan:{strike:10.4,spec:0,   won:0.132},Feb:{strike:27.6,spec:28.5,won:0.385},Mar:{strike:9.9, spec:49.4,won:0.096},Apr:{strike:15.1,spec:18.0,won:0.152},May:{strike:33.9,spec:52.3,won:0.335},Jun:{strike:21.4,spec:87.2,won:0.223},Jul:{strike:38.1,spec:68.0,won:0.400},Aug:{strike:35.2,spec:40.1,won:0.166},Sep:{strike:40.2,spec:41.3,won:0.306},Oct:{strike:12.9,spec:50.8,won:0.270},Nov:{strike:30.9,spec:46.4,won:0.227},Dec:{strike:58.8,spec:73.1,won:0.161}},
-      NSW: {Jan:{strike:26.0,spec:20.1,won:0.091},Feb:{strike:3.7, spec:60.9,won:0.038},Mar:{strike:6.0, spec:0,   won:0.030},Apr:{strike:45.5,spec:12.2,won:0.113},May:{strike:10.5,spec:100, won:0.042},Jun:{strike:13.6,spec:81.1,won:0.124},Jul:{strike:48.5,spec:37.3,won:0.601},Aug:{strike:1.3, spec:100, won:0.026},Sep:{strike:30.7,spec:10.1,won:0.214},Oct:{strike:6.6, spec:0,   won:0.062},Nov:{strike:1.2, spec:0,   won:0.015},Dec:{strike:0,   spec:0,   won:0}},
-      QLD: {Jan:{strike:37.9,spec:0,   won:0.029},Feb:{strike:0,   spec:0,   won:0},    Mar:{strike:18.9,spec:100, won:0.031},Apr:{strike:17.1,spec:100, won:0.017},May:{strike:22.8,spec:12.0,won:0.085},Jun:{strike:15.6,spec:100, won:0.021},Jul:{strike:0,   spec:0,   won:0},    Aug:{strike:0,   spec:0,   won:0},    Sep:{strike:34.9,spec:55.7,won:0.161},Oct:{strike:20.7,spec:20.7,won:0.069},Nov:{strike:17.1,spec:0,   won:0.058},Dec:{strike:19.6,spec:0,   won:0.075}},
-      SA:  {Jan:{strike:0,spec:0,won:0},Feb:{strike:0,spec:0,won:0},Mar:{strike:100,spec:0,won:0.099},Apr:{strike:0,spec:0,won:0},May:{strike:0,spec:0,won:0},Jun:{strike:0,spec:0,won:0},Jul:{strike:0,spec:0,won:0},Aug:{strike:100,spec:0,won:0.024},Sep:{strike:0,spec:0,won:0},Oct:{strike:0,spec:0,won:0},Nov:{strike:0,spec:0,won:0},Dec:{strike:0,spec:0,won:0}},
-      WA:  {Jan:{strike:0,spec:0,won:0},Feb:{strike:0,spec:0,won:0},Mar:{strike:0,spec:0,won:0},Apr:{strike:42.1,spec:0,won:0.015},May:{strike:0,spec:0,won:0},Jun:{strike:0,spec:0,won:0},Jul:{strike:0,spec:0,won:0},Aug:{strike:0,spec:0,won:0},Sep:{strike:0,spec:0,won:0},Oct:{strike:0,spec:0,won:0},Nov:{strike:0,spec:0,won:0},Dec:{strike:0,spec:0,won:0}}
-    }
+    Q:{}
   }
 };
 
@@ -507,7 +489,8 @@ async function fetchHubSpot(){
       const body={
         filterGroups:[{filters:[
           {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
-          {propertyName:'dealstage',operator:'IN',values:ACTIVE_STAGES}
+          {propertyName:'dealstage',operator:'IN',values:ACTIVE_STAGES},
+          {propertyName:'amount',operator:'GTE',value:'10000'}
         ]}],
         properties:PROPS,sorts:[],limit:100
       };
@@ -523,39 +506,75 @@ async function fetchHubSpot(){
     }
 
     document.getElementById('hs-connect-status').textContent='Loading 2026 won/lost deals…';
-    // FETCH 2: Won/Lost — fetch all, filter client-side by hs_v2_date_entered
-    // closedate is corrupted by Pipedrive import — use entered_won stage date instead
+    // FETCH 2: Won/Lost — dual date strategy
+    // Jan 1 – Feb 12 2026: use closedate (deals in Pipedrive before bulk import)
+    // Feb 13 2026 onwards: use hs_v2_date_entered (immune to Pipedrive corruption)
     const ENTERED_WON_PROP='hs_v2_date_entered_2367434193';
     const ENTERED_LOST_PROP='hs_v2_date_entered_2367434194';
     const JAN_2026 = new Date('2026-01-01T00:00:00.000Z').getTime();
-    let p2=0,a2=undefined;
-    while(p2<30){
+    const FEB_12_2026 = new Date('2026-02-12T23:59:59.999Z').getTime();
+    const FEB_13_2026 = new Date('2026-02-13T00:00:00.000Z').getTime();
+    const BULK_IMPORT_DATE = '2026-02-12';
+
+    // Part A: Jan 1 – Feb 12 using closedate
+    let p2a=0,a2a=undefined;
+    while(p2a<10){
       const body={
         filterGroups:[{filters:[
           {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
-          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES}
+          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES},
+          {propertyName:'amount',operator:'GTE',value:'10000'},
+          {propertyName:'closedate',operator:'GTE',value:String(JAN_2026)},
+          {propertyName:'closedate',operator:'LTE',value:String(FEB_12_2026)}
         ]}],
         properties:[...PROPS,'closedate',ENTERED_WON_PROP,ENTERED_LOST_PROP],
         sorts:[],limit:100
       };
-      if(a2)body.after=a2;
+      if(a2a)body.after=a2a;
       const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
         method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
         body:JSON.stringify(body)
       },20000);
-      if(!r.ok)throw new Error('Won/Lost fetch '+r.status);
+      if(!r.ok)throw new Error('Won/Lost Part A fetch '+r.status);
       const d=await r.json();
-      // Filter client-side: keep deals that ENTERED Won or Lost stage in 2026
+      allDeals=allDeals.concat(d.results||[]);
+      if(d.paging?.next?.after){a2a=d.paging.next.after;p2a++;}else break;
+    }
+
+    // Part B: Feb 13 onwards using entered_won/entered_lost date
+    let p2b=0,a2b=undefined;
+    while(p2b<20){
+      const body={
+        filterGroups:[{filters:[
+          {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
+          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES},
+          {propertyName:'amount',operator:'GTE',value:'10000'}
+        ]}],
+        properties:[...PROPS,'closedate',ENTERED_WON_PROP,ENTERED_LOST_PROP],
+        sorts:[],limit:100
+      };
+      if(a2b)body.after=a2b;
+      const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
+        method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      },20000);
+      if(!r.ok)throw new Error('Won/Lost Part B fetch '+r.status);
+      const d=await r.json();
+      // Keep only deals where entered_won OR entered_lost >= Feb 13 2026
       const filtered=(d.results||[]).filter(deal=>{
-        const enteredWon=deal.properties?.[ENTERED_WON_PROP];
-        const enteredLost=deal.properties?.[ENTERED_LOST_PROP];
-        const entered=enteredWon||enteredLost;
-        if(!entered) return false; // no entry date — skip
-        return new Date(entered).getTime()>=JAN_2026;
+        const ew=deal.properties?.[ENTERED_WON_PROP];
+        const el=deal.properties?.[ENTERED_LOST_PROP];
+        const entered=ew||el;
+        if(!entered) return false;
+        const ts=new Date(entered).getTime();
+        return ts>=FEB_13_2026;
       });
       allDeals=allDeals.concat(filtered);
-      if(d.paging?.next?.after){a2=d.paging.next.after;p2++;}else break;
+      if(d.paging?.next?.after){a2b=d.paging.next.after;p2b++;}else break;
     }
+    // Deduplicate by deal ID
+    const seenIds=new Set();
+    allDeals=allDeals.filter(d=>{if(seenIds.has(d.id))return false;seenIds.add(d.id);return true;});
 
     // Fetch owners to map IDs to names
     document.getElementById('hs-connect-status').textContent='Loading owners & meetings…';
