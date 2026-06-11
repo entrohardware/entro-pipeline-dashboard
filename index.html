@@ -395,10 +395,13 @@ const DEF={
   stageTargets:{'2612273595':2000000,'2367434189':3000000,'2367434190':1500000,'2367434191':500000,'2367434192':800000,'2369507813':5000000,'2369507814':8000000,'2369507815':1000000},
   forecastTargets:{},
   ytd2025:{
-    // Full year baselines
-    spec:  {ALL:41.5,VIC:48.3,NSW:34.6,QLD:33.5,SA:0,  WA:0,  TAS:0,ACT:0,NT:0},
-    strike:{ALL:18.3,VIC:23.7,NSW:13.5,QLD:19.5,SA:7.5,WA:8.4,TAS:0,ACT:0,NT:0},
-    won:   {ALL:4.893,VIC:2.854,NSW:1.357,QLD:0.545,SA:0.122,WA:0.015,TAS:0,ACT:0,NT:0},
+    // Calculated from Pipedrive export (deals >= $10k, Jan-May 2025 YTD)
+    // These update automatically as 2026 progresses through each month
+    // Full year 2025: Won $4.89M | Strike 18.3% | Spec% 41.5%
+    // YTD Jan-May 2025: Won $1.69M | Strike 17.9% | Spec% 30.5%
+    spec:  {ALL:30.5,VIC:32.7,NSW:31.0,QLD:36.0,SA:0.0, WA:0.0, TAS:0,ACT:0,NT:0},
+    strike:{ALL:17.9,VIC:19.6,NSW:12.5,QLD:21.3,SA:21.9,WA:42.1,TAS:0,ACT:0,NT:0},
+    won:   {ALL:1.690,VIC:1.101,NSW:0.314,QLD:0.161,SA:0.099,WA:0.015,TAS:0,ACT:0,NT:0},
     // Quarterly breakdowns (for QTD comparison)
     Q:{
       ALL: {Q1:{strike:15.6,spec:24.7,won:0.930},Q2:{strike:18.2,spec:53.3,won:1.127},Q3:{strike:25.7,spec:43.5,won:1.898},Q4:{strike:13.0,spec:39.9,won:0.937}},
@@ -519,17 +522,17 @@ async function fetchHubSpot(){
       if(d.paging?.next?.after){a1=d.paging.next.after;p1++;}else break;
     }
 
-    document.getElementById('hs-connect-status').textContent='Loading won/lost deals…';
-    // FETCH 2: Won/Lost — Sales pipeline, all records, filter client-side
-    // Excludes Pipedrive import batch (all timestamped 2025-06-11)
-    // Only keeps deals closed in 2026 or after
-    const IMPORT_DATE = '2025-06-11'; // Pipedrive import date — exclude these
+    document.getElementById('hs-connect-status').textContent='Loading 2026 won/lost deals…';
+    // FETCH 2: Won/Lost — filter by closedate >= Jan 1 2026 server-side
+    // This excludes all Pipedrive historical imports cleanly
+    const JAN_2026_TS = String(new Date('2026-01-01T00:00:00.000Z').getTime());
     let p2=0,a2=undefined;
     while(p2<30){
       const body={
         filterGroups:[{filters:[
           {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
-          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES}
+          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES},
+          {propertyName:'closedate',operator:'GTE',value:JAN_2026_TS}
         ]}],
         properties:[...PROPS,'closedate'],sorts:[],limit:100
       };
@@ -540,16 +543,7 @@ async function fetchHubSpot(){
       },20000);
       if(!r.ok)throw new Error('Won/Lost fetch '+r.status);
       const d=await r.json();
-      // Filter: keep only deals NOT from the Pipedrive import batch
-      const filtered=(d.results||[]).filter(deal=>{
-        const cd=deal.properties?.closedate||deal.properties?.estimated_close_date||'';
-        if(!cd) return true; // no date — keep (genuine new deal)
-        const dateStr=cd.substring(0,10); // YYYY-MM-DD
-        if(dateStr===IMPORT_DATE) return false; // exclude Pipedrive import batch
-        const year=parseInt(dateStr.substring(0,4));
-        return year>=2026; // only 2026 onwards
-      });
-      allDeals=allDeals.concat(filtered);
+      allDeals=allDeals.concat(d.results||[]);
       if(d.paging?.next?.after){a2=d.paging.next.after;p2++;}else break;
     }
 
