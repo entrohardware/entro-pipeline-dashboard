@@ -506,65 +506,49 @@ async function fetchHubSpot(){
     }
 
     document.getElementById('hs-connect-status').textContent='Loading 2026 won/lost deals…';
-    // FETCH 2: Won/Lost — three-part strategy to handle Pipedrive migration
-    // Part A: Won deals Jan 1–Feb 12 by closedate (genuine pre-import wins)
-    // Part B: Lost deals Jan 16–Feb 12 by closedate (skip Jan 13-15 bulk lost import)
-    // Part C: All Won/Lost from Feb 13 onwards by entered_won/entered_lost
-    // Part D: Feb 12 batch — only keep deals with createdate >= Jan 1 2026
+    // FETCH 2: Won/Lost
+    // Jan 1 – Feb 12 2026: hardcoded from HubSpot export (closedate-based, pre-bulk-import)
+    // Feb 13+ 2026: live from HubSpot API using entered_won/entered_lost stage date
 
     const ENTERED_WON_PROP='hs_v2_date_entered_2367434193';
     const ENTERED_LOST_PROP='hs_v2_date_entered_2367434194';
-    const JAN_2026=new Date('2026-01-01T00:00:00.000Z').getTime();
-    const JAN_16_2026=new Date('2026-01-16T00:00:00.000Z').getTime();
-    const FEB_12_START=new Date('2026-02-12T00:00:00.000Z').getTime();
-    const FEB_12_END=new Date('2026-02-12T23:59:59.999Z').getTime();
     const FEB_13_2026=new Date('2026-02-13T00:00:00.000Z').getTime();
 
-    async function fetchWonLostPage(filters,after){
-      const body={filterGroups:[{filters:[
-        {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
-        ...filters,
-        {propertyName:'amount',operator:'GTE',value:'10000'}
-      ]}],properties:[...PROPS,'closedate',ENTERED_WON_PROP,ENTERED_LOST_PROP,'createdate'],sorts:[],limit:100};
-      if(after)body.after=after;
+    // Static Jan 1 – Feb 12 deals (from HubSpot export, verified correct)
+    const STATIC_WON=[{"id": "221465229776", "name": "Building 2, L3, 747 Lytton Road 16098AA", "stage": "2367434193", "amount": 10643.56, "owner": "Leigan Paterson", "state": "QLD", "specStatus": "Entro Spec", "closeDate": "2026-01-16"}, {"id": "191131387380", "name": "Corporate Cubes, 347 Kent St 15952BC", "stage": "2367434193", "amount": 32072.31, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "Entro Spec", "closeDate": "2026-01-12"}, {"id": "187670285793", "name": "Level 7 Melbourne IVF Fitout 15941AA", "stage": "2367434193", "amount": 22500.0, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "Entro Spec", "closeDate": "2026-02-04"}, {"id": "84596446663", "name": "Edmonson Park Site 1-2 Block 1-7 13750CM", "stage": "2367434193", "amount": 29914.73, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "Entro Spec", "closeDate": "2026-01-16"}, {"id": "84672976375", "name": "Mixed Use Development Rouse Hill 14021BE", "stage": "2367434193", "amount": 31651.38, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "Entro Spec", "closeDate": "2026-02-11"}, {"id": "84686272991", "name": "130 Lambert, Kangaroo Point 14686AC", "stage": "2367434193", "amount": 99319.03, "owner": "Leigan Paterson", "state": "QLD", "specStatus": "Entro Spec", "closeDate": "2026-02-10"}, {"id": "233840908768", "name": "Mecwacare Upgrade 16157AA", "stage": "2367434193", "amount": 11040.74, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-10"}, {"id": "203083266519", "name": "Level 26, Xero Sydney 16027AA", "stage": "2367434193", "amount": 17986.64, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "", "closeDate": "2026-01-19"}, {"id": "201195599330", "name": "QUO102561 White Door Seals", "stage": "2367434193", "amount": 21080.85, "owner": "Leigan Paterson", "state": "QLD", "specStatus": "", "closeDate": "2026-01-08"}, {"id": "201357705721", "name": "Level 24 Sunrice Sydney 16019AB", "stage": "2367434193", "amount": 10040.88, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "", "closeDate": "2026-01-19"}, {"id": "185785362908", "name": "L9, Stage 2 717 Bourke St 15926AA", "stage": "2367434193", "amount": 10611.34, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-09"}, {"id": "179640517096", "name": "125-127 Doncaster Rd 15890AA", "stage": "2367434193", "amount": 20500.0, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-29"}, {"id": "124479246834", "name": "VSBA Mount Eliza Secondary College Stage 1 15408CE", "stage": "2367434193", "amount": 28132.19, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-30"}, {"id": "95648909757", "name": "100-104 Mimosa Rd, Carnegie 15197AA", "stage": "2367434193", "amount": 36500.0, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-10"}, {"id": "85540338142", "name": "123-125 Como Parade East Parkdale 14299AA", "stage": "2367434193", "amount": 13630.24, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-21"}, {"id": "84822852029", "name": "11 Jennifer St, Little Bay 13742AI", "stage": "2367434193", "amount": 148234.84, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "", "closeDate": "2026-01-31"}, {"id": "84670503380", "name": "52-54 Brighton St, Freshwater 14496AD", "stage": "2367434193", "amount": 12404.47, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "", "closeDate": "2026-01-16"}, {"id": "84755588569", "name": "Redstone Estate Club Facility/Childcare 13903CC/13905CC", "stage": "2367434193", "amount": 52514.66, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-15"}, {"id": "84686273008", "name": "MAKITA MBP 14868AC", "stage": "2367434193", "amount": 57022.49, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-21"}];
+    const STATIC_LOST=[{"id": "184412103102", "name": "Hilti Sydney Headquarter (Black) 15906AC", "stage": "2367434194", "amount": 13265.93, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "Entro Spec", "closeDate": "2026-01-27"}, {"id": "179397023222", "name": "Jetstar L4-7 Business Centre 15907AA", "stage": "2367434194", "amount": 37053.59, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "Entro Spec", "closeDate": "2026-01-30"}, {"id": "141770548725", "name": "Levels 28-30, 400 George Street 15592AA", "stage": "2367434194", "amount": 16961.95, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "Entro Spec", "closeDate": "2026-02-03"}, {"id": "116481707495", "name": "201 Leichhardt St, Spring Hill 15340AA", "stage": "2367434194", "amount": 13706.04, "owner": "Leigan Paterson", "state": "QLD", "specStatus": "Entro Spec", "closeDate": "2026-01-27"}, {"id": "84510620112", "name": "Mickleham Botanical Local Town Centre 13940AB", "stage": "2367434194", "amount": 61175.83, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "Entro Spec", "closeDate": "2026-02-02"}, {"id": "238707839454", "name": "Rialto Business Lounge 16180AA", "stage": "2367434194", "amount": 16705.39, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-09"}, {"id": "197741656528", "name": "Apple Sydney 15792BD", "stage": "2367434194", "amount": 65000.0, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "", "closeDate": "2026-02-11"}, {"id": "179346914788", "name": "The Lomax 15837AA", "stage": "2367434194", "amount": 81031.16, "owner": "Leigan Paterson", "state": "QLD", "specStatus": "", "closeDate": "2026-01-27"}, {"id": "157945882042", "name": "6/11 Motorola Solutions Fitout 15736BA", "stage": "2367434194", "amount": 15096.37, "owner": "Leigan Paterson", "state": "QLD", "specStatus": "", "closeDate": "2026-02-11"}, {"id": "147995773372", "name": "CLC Office Fitout 15686AA", "stage": "2367434194", "amount": 53757.38, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-09"}, {"id": "141390076382", "name": "ParkLife2 Brunswick 15567AA", "stage": "2367434194", "amount": 80977.1, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-03"}, {"id": "131614535155", "name": "L11 - 11a, 31 Queen St Spec Suite Fitout 15485AA", "stage": "2367434194", "amount": 11718.84, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-23"}, {"id": "127990878710", "name": "Daikin Head Office 15435AA", "stage": "2367434194", "amount": 24605.88, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "", "closeDate": "2026-01-28"}, {"id": "119423131109", "name": "Sunny Eggs 15385AA | 15379AA", "stage": "2367434194", "amount": 14963.37, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-21"}, {"id": "114020394449", "name": "Servcorp L15, 28 Freshwater Pl 15327CC", "stage": "2367434194", "amount": 27862.04, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-30"}, {"id": "112040729049", "name": "Maverick Mordialloc 15324AB", "stage": "2367434194", "amount": 74722.23, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-02"}, {"id": "110684647926", "name": "Salesforce Melbourne 15271DB", "stage": "2367434194", "amount": 20289.02, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-27"}, {"id": "94903865817", "name": "Lot 301 Spec, Stapylton 15161AA", "stage": "2367434194", "amount": 13582.62, "owner": "Leigan Paterson", "state": "QLD", "specStatus": "", "closeDate": "2026-01-21"}, {"id": "90204943858", "name": "Amazon Melbourne L5, 555 Collins St 15162BA", "stage": "2367434194", "amount": 15481.96, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-02"}, {"id": "86019386815", "name": "Warralily Town Center 15128AA", "stage": "2367434194", "amount": 61430.47, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-02"}, {"id": "84597270005", "name": "115-119 Gardenvale Rd, Gardenvale 14901AA", "stage": "2367434194", "amount": 14151.35, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-12"}, {"id": "85540338133", "name": "L22, 530 Collins St Spec Suite & Stair Infill 15015AA", "stage": "2367434194", "amount": 16255.98, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-11"}, {"id": "85528831473", "name": "102 Douglas Parade, Williamstown 14235AA", "stage": "2367434194", "amount": 18308.65, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-02-02"}, {"id": "84678431199", "name": "The Switch 23-25 Lachlan Ave 12757CC", "stage": "2367434194", "amount": 240000.0, "owner": "Daniel Marrone", "state": "NSW", "specStatus": "", "closeDate": "2026-02-10"}, {"id": "84670451185", "name": "Airtrunk Shell K Fitout 14724AE", "stage": "2367434194", "amount": 63043.17, "owner": "Patrick Goldsmith", "state": "VIC", "specStatus": "", "closeDate": "2026-01-16"}];
+
+    // Normalise static deals into same format as live deals
+    function normaliseStatic(d){
+      return {
+        id:d.id, name:d.name, stage:d.stage,
+        amount:d.amount, owner:d.owner,
+        estimatedCloseDate:d.closeDate+'T00:00:00.000Z',
+        specStatus:d.specStatus, createDate:d.closeDate
+      };
+    }
+    allDeals=allDeals.concat(STATIC_WON.map(normaliseStatic));
+    allDeals=allDeals.concat(STATIC_LOST.map(normaliseStatic));
+
+    // Live Feb 13+ deals from HubSpot API
+    let p2=0,a2=undefined;
+    while(p2<20){
+      const body={
+        filterGroups:[{filters:[
+          {propertyName:'pipeline',operator:'EQ',value:'1412380097'},
+          {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES},
+          {propertyName:'amount',operator:'GTE',value:'10000'}
+        ]}],
+        properties:[...PROPS,'closedate',ENTERED_WON_PROP,ENTERED_LOST_PROP],
+        sorts:[],limit:100
+      };
+      if(a2)body.after=a2;
       const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
         method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
         body:JSON.stringify(body)
       },20000);
       if(!r.ok)throw new Error('Won/Lost fetch '+r.status);
-      return r.json();
-    }
-
-    // Part A: Won Jan 1 – Feb 11 by closedate
-    let pa=undefined;
-    for(let i=0;i<10;i++){
-      const d=await fetchWonLostPage([
-        {propertyName:'dealstage',operator:'EQ',value:'2367434193'},
-        {propertyName:'closedate',operator:'GTE',value:String(JAN_2026)},
-        {propertyName:'closedate',operator:'LT',value:String(FEB_12_START)}
-      ],pa);
-      allDeals=allDeals.concat(d.results||[]);
-      if(d.paging?.next?.after){pa=d.paging.next.after;}else break;
-    }
-
-    // Part B: Lost Jan 16 – Feb 11 by closedate
-    let pb=undefined;
-    for(let i=0;i<10;i++){
-      const d=await fetchWonLostPage([
-        {propertyName:'dealstage',operator:'EQ',value:'2367434194'},
-        {propertyName:'closedate',operator:'GTE',value:String(JAN_16_2026)},
-        {propertyName:'closedate',operator:'LT',value:String(FEB_12_START)}
-      ],pb);
-      allDeals=allDeals.concat(d.results||[]);
-      if(d.paging?.next?.after){pb=d.paging.next.after;}else break;
-    }
-
-    // Part C: Feb 13+ — all Won/Lost by entered stage date
-    let pc=undefined;
-    for(let i=0;i<20;i++){
-      const d=await fetchWonLostPage([
-        {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES}
-      ],pc);
+      const d=await r.json();
       const filtered=(d.results||[]).filter(deal=>{
         const ew=deal.properties?.[ENTERED_WON_PROP];
         const el=deal.properties?.[ENTERED_LOST_PROP];
@@ -573,29 +557,7 @@ async function fetchHubSpot(){
         return new Date(entered).getTime()>=FEB_13_2026;
       });
       allDeals=allDeals.concat(filtered);
-      if(d.paging?.next?.after){pc=d.paging.next.after;}else break;
-    }
-
-    // Part D: Feb 12 batch — only genuine 2026 deals (createdate >= Jan 1 2026)
-    let pd=undefined;
-    for(let i=0;i<10;i++){
-      const d=await fetchWonLostPage([
-        {propertyName:'dealstage',operator:'IN',values:WON_LOST_STAGES}
-      ],pd);
-      const filtered=(d.results||[]).filter(deal=>{
-        const ew=deal.properties?.[ENTERED_WON_PROP];
-        const el=deal.properties?.[ENTERED_LOST_PROP];
-        const entered=ew||el;
-        if(!entered)return false;
-        const enteredTs=new Date(entered).getTime();
-        if(enteredTs<FEB_12_START||enteredTs>FEB_12_END)return false;
-        // Only include if deal was created in HubSpot from Jan 2026
-        const created=deal.properties?.createdate;
-        if(!created)return false;
-        return new Date(created).getTime()>=JAN_2026;
-      });
-      allDeals=allDeals.concat(filtered);
-      if(d.paging?.next?.after){pd=d.paging.next.after;}else break;
+      if(d.paging?.next?.after){a2=d.paging.next.after;p2++;}else break;
     }
 
     // Deduplicate by deal ID
