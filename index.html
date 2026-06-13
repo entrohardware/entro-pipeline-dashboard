@@ -779,9 +779,9 @@ function renderWonDetail(){
   else if(wonPeriod==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);}
   else{start=new Date('2026-01-01');}
 
-  const STATES_LIST=['VIC','NSW','QLD','SA','WA','TAS','ACT','NT'];
+  const STATES_LIST=['VIC','NSW','QLD','SA','OTHER'];
   // Annual targets — scale by period
-  const annualTargets={'VIC':1750000,'NSW':1750000,'QLD':1750000,'SA':1400000,'WA':350000,'TAS':0,'ACT':0,'NT':0};
+  const annualTargets={'VIC':1750000,'NSW':1750000,'QLD':1750000,'SA':1400000,'OTHER':350000};
   // Scaling factors: YTD=full year, QTD=quarter(3/12), MO=month(1/12), WK=week(1/52)
   const periodScale={'ytd':1,'quarter':3/12,'month':1/12,'week':1/52};
   const scale=periodScale[wonPeriod]||1;
@@ -806,8 +806,10 @@ function renderWonDetail(){
   const stateData={};
   STATES_LIST.forEach(s=>{stateData[s]={spec:0,nonSpec:0,deals:[]};});
   won.forEach(d=>{
-    const state=o2s(d.owner);
-    if(!state||!stateData[state])return;
+    let state=o2s(d.owner);
+    if(!state)return;
+    if(['WA','TAS','ACT','NT'].includes(state))state='OTHER';
+    if(!stateData[state])return;
     const isSpec=d.specStatus==='Entro Spec'||d.specStatus==='Spec';
     if(isSpec) stateData[state].spec+=d.amount;
     else stateData[state].nonSpec+=d.amount;
@@ -830,13 +832,13 @@ function renderWonDetail(){
     const deals=stateData[s].deals;
 
     h+=`<div class="stage-row" onclick="showWonDeals('${s}','${wonPeriod}')" style="cursor:pointer">
-      <div class="s-name" style="width:32px;flex-shrink:0">${s}</div>
+      <div class="s-name" style="width:52px;flex-shrink:0;font-size:10px">${s==='OTHER'?'WA/Other':s}</div>
       <div style="flex:1;position:relative;">
         <div class="s-track" style="position:relative;">
           <!-- Non-spec portion (orange) -->
-          <div style="position:absolute;left:0;top:0;bottom:0;width:${nonSpecPct.toFixed(1)}%;background:#6BBF8E;border-radius:3px 0 0 3px;"></div>
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${nonSpecPct.toFixed(1)}%;background:#1D9E75;border-radius:3px 0 0 3px;"></div>
           <!-- Spec portion (darker orange/amber) -->
-          <div style="position:absolute;left:${nonSpecPct.toFixed(1)}%;top:0;bottom:0;width:${specPct.toFixed(1)}%;background:#1D9E75;border-radius:${nonSpecPct>0?'0':'3px'} 3px 3px ${nonSpecPct>0?'0':'3px'};"></div>
+          <div style="position:absolute;left:${nonSpecPct.toFixed(1)}%;top:0;bottom:0;width:${specPct.toFixed(1)}%;background:#6BBF8E;border-radius:${nonSpecPct>0?'0':'3px'} 3px 3px ${nonSpecPct>0?'0':'3px'};"></div>
           <!-- Target tick -->
           ${tgt>0?`<div style="position:absolute;left:${tgtPct.toFixed(1)}%;top:-2px;bottom:-2px;width:2px;background:var(--text3);border-radius:1px;"></div>`:''}
         </div>
@@ -854,15 +856,7 @@ function renderWonDetail(){
     <div class="wl-chip lost"><div class="wl-lbl">Lost YTD</div><div class="wl-num">${fmt$(allLost)}</div></div>
   </div>`;
 
-  // Legend
-  h+=`<div style="display:flex;gap:14px;margin-top:6px;padding-top:8px;border-top:1px solid var(--b1)">
-    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3)">
-      <div style="width:10px;height:10px;border-radius:2px;background:#6BBF8E"></div>Non-Spec
-    </div>
-    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3)">
-      <div style="width:10px;height:10px;border-radius:2px;background:#1D9E75"></div>Entro Spec
-    </div>
-  </div>`;
+  // Legend removed
   h+='</div>';
   el.innerHTML=h;
 }
@@ -875,15 +869,49 @@ function showWonDeals(state,period){
   else if(period==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);}
   else{start=new Date('2026-01-01');}
 
-  const deals=hsDeals.filter(d=>{
+  const OTHER_STATES=['WA','TAS','ACT','NT'];
+  let deals=hsDeals.filter(d=>{
     if(d.stage!=='2367434193')return false;
-    if(o2s(d.owner)!==state)return false;
+    const ds=o2s(d.owner);
+    if(state==='OTHER'){if(!OTHER_STATES.includes(ds))return false;}
+    else{if(ds!==state)return false;}
     if(!d.estimatedCloseDate)return false;
     return new Date(d.estimatedCloseDate)>=start;
-  }).sort((a,b)=>b.amount-a.amount);
+  });
 
-  const total=deals.reduce((a,d)=>a+d.amount,0);
   const periodLabel={'week':'This Week','month':'This Month','quarter':'QTD','ytd':'YTD'}[period]||period;
+  let sortCol='amount', sortDir=-1;
+
+  function getRows(data){
+    return data.map(d=>{
+      const isSpec=d.specStatus==='Entro Spec'||d.specStatus==='Spec';
+      return `<tr onmouseover="this.style.background='var(--surf2)'" onmouseout="this.style.background=''">
+        <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text)">${d.name||'—'}</td>
+        <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text2);white-space:nowrap">${d.owner||'—'}</td>
+        <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:11px;white-space:nowrap;color:${isSpec?'#6BBF8E':'var(--text3)'};font-weight:${isSpec?'600':'400'}">${d.specStatus||'—'}</td>
+        <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtFull$(d.amount)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function doSort(col){
+    if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=col==='amount'?-1:1;}
+    deals=[...deals].sort((a,b)=>{
+      const av=a[col]||0,bv=b[col]||0;
+      return typeof av==='number'?(av-bv)*sortDir:String(av).localeCompare(String(bv))*sortDir;
+    });
+    document.getElementById('won-popup-tbody').innerHTML=getRows(deals);
+    document.querySelectorAll('#won-popup th[data-col]').forEach(th=>{
+      const arr=th.querySelector('.arr');
+      if(arr) arr.textContent=th.dataset.col===sortCol?(sortDir>0?' ↑':' ↓'):'';
+    });
+  }
+
+  deals=[...deals].sort((a,b)=>b.amount-a.amount);
+  const total=deals.reduce((a,d)=>a+d.amount,0);
+
+  const th='padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--b2)';
+  const thr=th+';text-align:right';
 
   let popup=document.getElementById('won-popup');
   if(!popup){
@@ -894,20 +922,10 @@ function showWonDeals(state,period){
     document.body.appendChild(popup);
   }
 
-  const rows=deals.map(d=>{
-    const isSpec=d.specStatus==='Entro Spec'||d.specStatus==='Spec';
-    return `<tr onmouseover="this.style.background='var(--surf2)'" onmouseout="this.style.background=''">
-      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text)">${d.name}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text2);white-space:nowrap">${d.owner}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:11px;white-space:nowrap;color:${isSpec?'#1D9E75':'var(--text3)'};font-weight:${isSpec?'600':'400'}">${d.specStatus||'—'}</td>
-      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtFull$(d.amount)}</td>
-    </tr>`;
-  }).join('');
-
   popup.innerHTML=`<div style="background:var(--surf);border:1px solid var(--b2);border-radius:14px;width:720px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
     <div style="padding:20px 24px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0">
       <div>
-        <div style="font-size:16px;font-weight:700;color:var(--text)">${state} — Deals Won ${periodLabel}</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">${state==='OTHER'?'WA / TAS / ACT / NT':state} — Deals Won ${periodLabel}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:3px">${deals.length} deals &middot; Total ${fmtFull$(total)}</div>
       </div>
       <div onclick="document.getElementById('won-popup').remove()" style="cursor:pointer;color:var(--text3);padding:4px 8px;font-size:16px;line-height:1;margin-top:2px">&#10005;</div>
@@ -916,13 +934,13 @@ function showWonDeals(state,period){
       <table style="width:100%;border-collapse:collapse">
         <thead style="position:sticky;top:0;background:var(--surf);z-index:1">
           <tr>
-            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);border-bottom:2px solid var(--b2)">Deal Name</th>
-            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);border-bottom:2px solid var(--b2)">Owner</th>
-            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);border-bottom:2px solid var(--b2)">Spec</th>
-            <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);border-bottom:2px solid var(--b2)">Amount</th>
+            <th data-col="name" style="${th}">Deal Name<span class="arr"></span></th>
+            <th data-col="owner" style="${th}">Owner<span class="arr"></span></th>
+            <th data-col="specStatus" style="${th}">Spec<span class="arr"></span></th>
+            <th data-col="amount" style="${thr}">Amount<span class="arr"> ↓</span></th>
           </tr>
         </thead>
-        <tbody>${rows}</tbody>
+        <tbody id="won-popup-tbody">${getRows(deals)}</tbody>
         <tfoot>
           <tr style="background:var(--surf2);border-top:2px solid var(--b2)">
             <td colspan="3" style="padding:12px 14px;font-size:12px;font-weight:700;color:var(--text)">Total</td>
@@ -932,7 +950,11 @@ function showWonDeals(state,period){
       </table>
     </div>
   </div>`;
+
   popup.style.display='flex';
+  popup.querySelectorAll('th[data-col]').forEach(th=>{
+    th.addEventListener('click',()=>doSort(th.dataset.col));
+  });
 }
 
 function renderAll(){const deals=hsDeals.filter(sfilt);renderPipeline(deals);renderForecast(deals);renderDeepDisc();renderWonDetail();renderSpecForecast(deals);renderSpecRev(deals);renderStrike(deals);}
