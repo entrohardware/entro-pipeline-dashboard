@@ -780,7 +780,13 @@ function renderWonDetail(){
   else{start=new Date('2026-01-01');}
 
   const STATES_LIST=['VIC','NSW','QLD','SA','WA','TAS','ACT','NT'];
-  const stateTargets={'VIC':1750000,'NSW':1750000,'QLD':1750000,'SA':1400000,'WA':350000,'TAS':0,'ACT':0,'NT':0};
+  // Annual targets — scale by period
+  const annualTargets={'VIC':1750000,'NSW':1750000,'QLD':1750000,'SA':1400000,'WA':350000,'TAS':0,'ACT':0,'NT':0};
+  // Scaling factors: YTD=full year, QTD=quarter(3/12), MO=month(1/12), WK=week(1/52)
+  const periodScale={'ytd':1,'quarter':3/12,'month':1/12,'week':1/52};
+  const scale=periodScale[wonPeriod]||1;
+  const stateTargets={};
+  Object.keys(annualTargets).forEach(s=>{stateTargets[s]=Math.round(annualTargets[s]*scale/1000)*1000;});
 
   // Filter won deals in period
   const won=hsDeals.filter(d=>{
