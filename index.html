@@ -452,8 +452,10 @@ function loadCfg(){
     if(p.ownerMap)cfg.ownerMap=Object.assign({},DEF.ownerMap,p.ownerMap);
     if(p.deepTargets)cfg.deepTargets=p.deepTargets;
     if(p.specTarget)cfg.specTarget=Object.assign({},DEF.specTarget,p.specTarget);
-    if(p.stageTargets)cfg.stageTargets=Object.assign({},DEF.stageTargets,p.stageTargets);
-    if(p.forecastTargets)cfg.forecastTargets=p.forecastTargets;
+    // stageTargets always use DEF (nested per-state format, don't override from old localStorage)
+    cfg.stageTargets=DEF.stageTargets;
+    // forecastTargets always use DEF (monthly per-state format)
+    cfg.forecastTargets=DEF.forecastTargets;
     if(p.ytd2025)cfg.ytd2025={spec:Object.assign({},DEF.ytd2025.spec,p.ytd2025.spec||{}),strike:Object.assign({},DEF.ytd2025.strike,p.ytd2025.strike||{}),won:Object.assign({},DEF.ytd2025.won,p.ytd2025.won||{}),Q:p.ytd2025.Q||DEF.ytd2025.Q||{},M:p.ytd2025.M||DEF.ytd2025.M||{}};
   }catch(e){}
 }
