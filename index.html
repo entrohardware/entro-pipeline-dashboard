@@ -71,7 +71,7 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
 [data-theme="light"] .state-pill.active{background:var(--accent2);border-color:var(--accent);color:#fff;}
 
 .content{flex:1;overflow:hidden;padding:14px 16px;display:flex;flex-direction:column;gap:11px;background:var(--bg);min-height:0;}
-.tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;flex:1;min-height:0;}
+.tile-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;flex:1;min-height:0;}
 .tile-grid .tile{min-height:0;overflow:hidden;}
 .gauge-row{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;flex-shrink:0;}
 .tile{background:var(--surf);border:1px solid var(--b1);border-radius:13px;padding:16px 17px;position:relative;overflow:hidden;transition:border-color 0.18s;display:flex;flex-direction:column;}
@@ -279,6 +279,25 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
         <div id="forecast-content" style="flex:1;min-height:0;"></div>
       </div>
 
+    <!-- DEALS WON TILE -->
+      <div class="tile" id="tile-won-detail" style="padding-bottom:18px;">
+        <div class="t-accent"></div>
+        <div class="t-hdr" style="align-items:flex-start;">
+          <div style="flex:1;">
+            <div class="t-label">Deals Won</div>
+            <div id="won-detail-total" class="t-val" style="color:var(--green)">—</div>
+          </div>
+          <div id="won-detail-period-btns" style="display:flex;gap:4px;margin-top:2px;">
+            <button class="mini-btn" data-wp="week" onclick="setWonPeriod('week',this)">WK</button>
+            <button class="mini-btn" data-wp="month" onclick="setWonPeriod('month',this)">MO</button>
+            <button class="mini-btn" data-wp="quarter" onclick="setWonPeriod('quarter',this)">QTD</button>
+            <button class="mini-btn active" data-wp="ytd" onclick="setWonPeriod('ytd',this)">YTD</button>
+          </div>
+        </div>
+        <div id="won-detail-content" style="flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;">
+          <div class="loading"><div class="spin"></div>Loading</div>
+        </div>
+      </div>
     </div>
 
     <div class="gauge-row">
@@ -408,7 +427,7 @@ const DEF={
 };
 
 let cfg=JSON.parse(JSON.stringify(DEF));
-let activeState='ALL',deepPeriod='week',hsDeals=[],hsMeetings=[],isLive=false;
+let activeState='ALL',deepPeriod='week',wonPeriod='ytd',hsDeals=[],hsMeetings=[],isLive=false;
 const CHARTS={};
 
 (function buildMock(){
@@ -669,44 +688,36 @@ function showForecastDeals(monthIdx){
 
   if(!deals.length){alert('No deals forecast for '+label);return;}
 
-  // Sort state
   let sortCol='amount',sortDir=-1;
 
-  function renderTable(data){
-    const total=data.reduce((a,d)=>a+d.amount,0);
-    const thStyle='padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);cursor:pointer;user-select:none;white-space:nowrap;border-bottom:1px solid var(--b2)';
-    const thStyleR=thStyle+';text-align:right';
-    function arrow(col){return sortCol===col?(sortDir>0?' ↑':' ↓'):''}
-    const rows=data.map(d=>`
-      <tr style="transition:background 0.1s" onmouseover="this.style.background='var(--surf2)'" onmouseout="this.style.background=''">
-        <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text)">${d.name}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text2);white-space:nowrap">${d.owner}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:11px;color:var(--text2);white-space:nowrap">${d.specStatus||'—'}</td>
-        <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtFull$(d.amount)}</td>
-      </tr>`).join('');
-    document.getElementById('fc-tbody').innerHTML=rows;
-    document.getElementById('fc-total').textContent=fmtFull$(total);
-    document.getElementById('fc-count').textContent=data.length+' deals · Total '+fmtFull$(total);
-    // Update header arrows
-    ['name','owner','specStatus','amount'].forEach(col=>{
-      const el=document.getElementById('fc-th-'+col);
-      if(el) el.querySelector('span').textContent=arrow(col);
-    });
+  function getRows(data){
+    return data.map(d=>`<tr style="transition:background 0.1s" onmouseover="this.style.background='var(--surf2)'" onmouseout="this.style.background=''">
+      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text)">${d.name||'—'}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text2);white-space:nowrap">${d.owner||'—'}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:11px;color:var(--text2);white-space:nowrap">${d.specStatus||'—'}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtFull$(d.amount)}</td>
+    </tr>`).join('');
   }
 
-  function sortBy(col){
-    if(sortCol===col) sortDir*=-1;
-    else{sortCol=col;sortDir=col==='amount'?-1:1;}
+  function doSort(col){
+    if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=col==='amount'?-1:1;}
     deals=[...deals].sort((a,b)=>{
-      const av=a[col]||'',bv=b[col]||'';
-      if(typeof av==='number') return (av-bv)*sortDir;
-      return av.toString().localeCompare(bv.toString())*sortDir;
+      const av=a[col]||0,bv=b[col]||0;
+      return typeof av==='number'?(av-bv)*sortDir:String(av).localeCompare(String(bv))*sortDir;
     });
-    renderTable(deals);
+    document.getElementById('fc-tbody').innerHTML=getRows(deals);
+    document.querySelectorAll('#forecast-popup th[data-col]').forEach(th=>{
+      const arrow=th.querySelector('.fc-arr');
+      if(arrow) arrow.textContent=th.dataset.col===sortCol?(sortDir>0?' ↑':' ↓'):'';
+    });
   }
 
-  // Sort initially by amount desc
+  // Sort initially
   deals=[...deals].sort((a,b)=>b.amount-a.amount);
+  const total=deals.reduce((a,d)=>a+d.amount,0);
+
+  const th='padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);cursor:pointer;user-select:none;white-space:nowrap;border-bottom:2px solid var(--b2)';
+  const thr=th+';text-align:right';
 
   let popup=document.getElementById('forecast-popup');
   if(!popup){
@@ -717,46 +728,208 @@ function showForecastDeals(monthIdx){
     document.body.appendChild(popup);
   }
 
-  popup.innerHTML=`
-    <div style="background:var(--surf);border:1px solid var(--b2);border-radius:14px;width:760px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
-      <div style="padding:20px 24px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0">
-        <div>
-          <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.2px">${label} Forecast</div>
-          <div id="fc-count" style="font-size:11px;color:var(--text3);margin-top:3px">${deals.length} deals</div>
-        </div>
-        <div onclick="document.getElementById('forecast-popup').remove()" style="cursor:pointer;color:var(--text3);padding:4px 8px;border-radius:6px;font-size:16px;line-height:1;margin-top:2px" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">✕</div>
+  popup.innerHTML=`<div style="background:var(--surf);border:1px solid var(--b2);border-radius:14px;width:760px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
+    <div style="padding:20px 24px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.2px">${label} Forecast</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">${deals.length} deals &middot; Total ${fmtFull$(total)}</div>
       </div>
-      <div style="overflow-y:auto;flex:1">
-        <table style="width:100%;border-collapse:collapse">
-          <thead style="position:sticky;top:0;z-index:1;background:var(--surf)">
-            <tr>
-              <th id="fc-th-name" style="${thStyle}" onclick="this._sf('name')">Deal Name<span></span></th>
-              <th id="fc-th-owner" style="${thStyle}" onclick="this._sf('owner')">Owner<span></span></th>
-              <th id="fc-th-specStatus" style="${thStyle}" onclick="this._sf('specStatus')">Spec<span></span></th>
-              <th id="fc-th-amount" style="${thStyleR}" onclick="this._sf('amount')">Amount<span></span></th>
-            </tr>
-          </thead>
-          <tbody id="fc-tbody"></tbody>
-          <tfoot>
-            <tr style="background:var(--surf2);border-top:2px solid var(--b2)">
-              <td colspan="3" style="padding:12px 14px;font-size:12px;font-weight:700;color:var(--text)">Total</td>
-              <td id="fc-total" style="padding:12px 14px;font-size:13px;font-weight:700;color:var(--accent2);text-align:right;font-variant-numeric:tabular-nums"></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>`;
-
-  // Wire up sort handlers
-  ['name','owner','specStatus','amount'].forEach(col=>{
-    const th=document.getElementById('fc-th-'+col);
-    if(th) th._sf=sortBy;
-  });
+      <div onclick="document.getElementById('forecast-popup').remove()" style="cursor:pointer;color:var(--text3);padding:4px 8px;border-radius:6px;font-size:16px;line-height:1;margin-top:2px">&#10005;</div>
+    </div>
+    <div style="overflow-y:auto;flex:1">
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:var(--surf);z-index:1">
+          <tr>
+            <th data-col="name" style="${th}">Deal Name<span class="fc-arr"></span></th>
+            <th data-col="owner" style="${th}">Owner<span class="fc-arr"></span></th>
+            <th data-col="specStatus" style="${th}">Spec<span class="fc-arr"></span></th>
+            <th data-col="amount" style="${thr}">Amount<span class="fc-arr"> ↓</span></th>
+          </tr>
+        </thead>
+        <tbody id="fc-tbody">${getRows(deals)}</tbody>
+        <tfoot>
+          <tr style="background:var(--surf2);border-top:2px solid var(--b2)">
+            <td colspan="3" style="padding:12px 14px;font-size:12px;font-weight:700;color:var(--text)">Total</td>
+            <td style="padding:12px 14px;font-size:13px;font-weight:700;color:var(--accent2);text-align:right;font-variant-numeric:tabular-nums">${fmtFull$(total)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>`;
 
   popup.style.display='flex';
-  renderTable(deals);
+
+  // Attach sort handlers after DOM is ready
+  popup.querySelectorAll('th[data-col]').forEach(th=>{
+    th.addEventListener('click',()=>doSort(th.dataset.col));
+  });
 }
-function renderAll(){const deals=hsDeals.filter(sfilt);renderPipeline(deals);renderForecast(deals);renderDeepDisc();renderSpecForecast(deals);renderSpecRev(deals);renderStrike(deals);}
+function setWonPeriod(p,btn){
+  wonPeriod=p;
+  document.querySelectorAll('#won-detail-period-btns .mini-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderWonDetail();
+}
+
+function renderWonDetail(){
+  const now=NOW;
+  let start=new Date(now);
+  if(wonPeriod==='week'){start=new Date(now);start.setDate(now.getDate()-now.getDay());}
+  else if(wonPeriod==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);}
+  else if(wonPeriod==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);}
+  else{start=new Date('2026-01-01');}
+
+  const STATES_LIST=['VIC','NSW','QLD','SA','WA','TAS','ACT','NT'];
+  const stateTargets={'VIC':1750000,'NSW':1750000,'QLD':1750000,'SA':1400000,'WA':350000,'TAS':0,'ACT':0,'NT':0};
+
+  // Filter won deals in period
+  const won=hsDeals.filter(d=>{
+    if(d.stage!=='2367434193')return false;
+    if(!d.estimatedCloseDate)return false;
+    return new Date(d.estimatedCloseDate)>=start;
+  });
+
+  const total=won.reduce((a,d)=>a+d.amount,0);
+  document.getElementById('won-detail-total').textContent=fmt$(total);
+
+  // Build per-state bars
+  const el=document.getElementById('won-detail-content');
+  if(!el)return;
+
+  // Calculate per-state totals split by spec/non-spec
+  const stateData={};
+  STATES_LIST.forEach(s=>{stateData[s]={spec:0,nonSpec:0,deals:[]};});
+  won.forEach(d=>{
+    const state=o2s(d.owner);
+    if(!state||!stateData[state])return;
+    const isSpec=d.specStatus==='Entro Spec'||d.specStatus==='Spec';
+    if(isSpec) stateData[state].spec+=d.amount;
+    else stateData[state].nonSpec+=d.amount;
+    stateData[state].deals.push(d);
+  });
+
+  // Max value for bar scaling (use target or actual, whichever is larger)
+  const mx=Math.max(...STATES_LIST.map(s=>stateData[s].spec+stateData[s].nonSpec),
+                    ...Object.values(stateTargets),1);
+
+  let h='<div style="flex:1;display:flex;flex-direction:column;gap:6px;">';
+  STATES_LIST.forEach(s=>{
+    const spec=stateData[s].spec;
+    const nonSpec=stateData[s].nonSpec;
+    const total_s=spec+nonSpec;
+    const tgt=stateTargets[s]||0;
+    const specPct=(spec/mx)*100;
+    const nonSpecPct=(nonSpec/mx)*100;
+    const tgtPct=tgt>0?(tgt/mx)*100:0;
+    const deals=stateData[s].deals;
+
+    h+=`<div class="stage-row" onclick="showWonDeals('${s}','${wonPeriod}')" style="cursor:pointer">
+      <div class="s-name" style="width:32px;flex-shrink:0">${s}</div>
+      <div style="flex:1;position:relative;">
+        <div class="s-track" style="position:relative;">
+          <!-- Non-spec portion (orange) -->
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${nonSpecPct.toFixed(1)}%;background:#6BBF8E;border-radius:3px 0 0 3px;"></div>
+          <!-- Spec portion (darker orange/amber) -->
+          <div style="position:absolute;left:${nonSpecPct.toFixed(1)}%;top:0;bottom:0;width:${specPct.toFixed(1)}%;background:#1D9E75;border-radius:${nonSpecPct>0?'0':'3px'} 3px 3px ${nonSpecPct>0?'0':'3px'};"></div>
+          <!-- Target tick -->
+          ${tgt>0?`<div style="position:absolute;left:${tgtPct.toFixed(1)}%;top:-2px;bottom:-2px;width:2px;background:var(--text3);border-radius:1px;"></div>`:''}
+        </div>
+        <div style="font-size:9px;color:var(--text3);text-align:right;margin-top:1px">T: ${fmt$(tgt)}</div>
+      </div>
+      <div class="s-amt" style="min-width:60px">${fmt$(total_s)}</div>
+    </div>`;
+  });
+
+  // Won/Lost YTD totals (always YTD regardless of period filter)
+  const allWon=hsDeals.filter(d=>d.stage==='2367434193').reduce((a,d)=>a+d.amount,0);
+  const allLost=hsDeals.filter(d=>d.stage==='2367434194').reduce((a,d)=>a+d.amount,0);
+  h+=`<div class="wl-row" style="margin-top:8px;">
+    <div class="wl-chip won"><div class="wl-lbl">Won YTD</div><div class="wl-num">${fmt$(allWon)}</div></div>
+    <div class="wl-chip lost"><div class="wl-lbl">Lost YTD</div><div class="wl-num">${fmt$(allLost)}</div></div>
+  </div>`;
+
+  // Legend
+  h+=`<div style="display:flex;gap:14px;margin-top:6px;padding-top:8px;border-top:1px solid var(--b1)">
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3)">
+      <div style="width:10px;height:10px;border-radius:2px;background:#6BBF8E"></div>Non-Spec
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3)">
+      <div style="width:10px;height:10px;border-radius:2px;background:#1D9E75"></div>Entro Spec
+    </div>
+  </div>`;
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+function showWonDeals(state,period){
+  const now=NOW;
+  let start=new Date(now);
+  if(period==='week'){start=new Date(now);start.setDate(now.getDate()-now.getDay());}
+  else if(period==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);}
+  else if(period==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);}
+  else{start=new Date('2026-01-01');}
+
+  const deals=hsDeals.filter(d=>{
+    if(d.stage!=='2367434193')return false;
+    if(o2s(d.owner)!==state)return false;
+    if(!d.estimatedCloseDate)return false;
+    return new Date(d.estimatedCloseDate)>=start;
+  }).sort((a,b)=>b.amount-a.amount);
+
+  const total=deals.reduce((a,d)=>a+d.amount,0);
+  const periodLabel={'week':'This Week','month':'This Month','quarter':'QTD','ytd':'YTD'}[period]||period;
+
+  let popup=document.getElementById('won-popup');
+  if(!popup){
+    popup=document.createElement('div');
+    popup.id='won-popup';
+    popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)';
+    popup.addEventListener('click',function(e){if(e.target===this)this.remove();});
+    document.body.appendChild(popup);
+  }
+
+  const rows=deals.map(d=>{
+    const isSpec=d.specStatus==='Entro Spec'||d.specStatus==='Spec';
+    return `<tr onmouseover="this.style.background='var(--surf2)'" onmouseout="this.style.background=''">
+      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text)">${d.name}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text2);white-space:nowrap">${d.owner}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:11px;white-space:nowrap;color:${isSpec?'#1D9E75':'var(--text3)'};font-weight:${isSpec?'600':'400'}">${d.specStatus||'—'}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid var(--b1);font-size:12px;color:var(--text);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">${fmtFull$(d.amount)}</td>
+    </tr>`;
+  }).join('');
+
+  popup.innerHTML=`<div style="background:var(--surf);border:1px solid var(--b2);border-radius:14px;width:720px;max-width:95vw;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.4)">
+    <div style="padding:20px 24px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">${state} — Deals Won ${periodLabel}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">${deals.length} deals &middot; Total ${fmtFull$(total)}</div>
+      </div>
+      <div onclick="document.getElementById('won-popup').remove()" style="cursor:pointer;color:var(--text3);padding:4px 8px;font-size:16px;line-height:1;margin-top:2px">&#10005;</div>
+    </div>
+    <div style="overflow-y:auto;flex:1">
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:var(--surf);z-index:1">
+          <tr>
+            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);border-bottom:2px solid var(--b2)">Deal Name</th>
+            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);border-bottom:2px solid var(--b2)">Owner</th>
+            <th style="padding:10px 14px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);border-bottom:2px solid var(--b2)">Spec</th>
+            <th style="padding:10px 14px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);border-bottom:2px solid var(--b2)">Amount</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="background:var(--surf2);border-top:2px solid var(--b2)">
+            <td colspan="3" style="padding:12px 14px;font-size:12px;font-weight:700;color:var(--text)">Total</td>
+            <td style="padding:12px 14px;font-size:13px;font-weight:700;color:var(--green);text-align:right;font-variant-numeric:tabular-nums">${fmtFull$(total)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>`;
+  popup.style.display='flex';
+}
+
+function renderAll(){const deals=hsDeals.filter(sfilt);renderPipeline(deals);renderForecast(deals);renderDeepDisc();renderWonDetail();renderSpecForecast(deals);renderSpecRev(deals);renderStrike(deals);}
 
 const STAGE_LABELS={
   '2612273595':'Prospecting Lead',
@@ -843,7 +1016,7 @@ function renderPipeline(deals){
   h+='</div>';
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
   const lost=deals.filter(d=>d.stage==='2367434194'||d.stage==='Closed Lost').reduce((a,d)=>a+d.amount,0);
-  if(won>0||lost>0)h+=`<div class="wl-row"><div class="wl-chip won"><div class="wl-lbl">Won YTD</div><div class="wl-num">${fmt$(won)}</div></div><div class="wl-chip lost"><div class="wl-lbl">Lost YTD</div><div class="wl-num">${fmt$(lost)}</div></div></div>`;
+  // Won/Lost YTD moved to Deals Won tile
   document.getElementById('pipeline-content').innerHTML=h;
   // Trigger row height equalisation after render
   requestAnimationFrame(()=>{
