@@ -954,8 +954,7 @@ function renderWonDetail(){
           <div style="position:absolute;left:0;top:0;bottom:0;width:${nonSpecPct.toFixed(1)}%;background:#1D9E75;border-radius:3px 0 0 3px;"></div>
           <!-- Spec portion (darker orange/amber) -->
           <div style="position:absolute;left:${nonSpecPct.toFixed(1)}%;top:0;bottom:0;width:${specPct.toFixed(1)}%;background:#6BBF8E;border-radius:${nonSpecPct>0?'0':'3px'} 3px 3px ${nonSpecPct>0?'0':'3px'};"></div>
-          <!-- Target tick — only show if target > 0 and bar has value -->
-          ${(tgt>0&&total_s>0)?`<div style="position:absolute;left:${tgtPct.toFixed(1)}%;top:-2px;bottom:-2px;width:2px;background:var(--text3);border-radius:1px;"></div>`:''}
+          <!-- Target tick removed -->
         </div>
         <div style="font-size:9px;color:var(--text3);text-align:right;margin-top:1px">T: ${fmt$(tgt)}</div>
       </div>
@@ -964,11 +963,21 @@ function renderWonDetail(){
   });
 
   // Won/Lost YTD totals (always YTD regardless of period filter)
-  const allWon=hsDeals.filter(d=>d.stage==='2367434193').reduce((a,d)=>a+d.amount,0);
-  const allLost=hsDeals.filter(d=>d.stage==='2367434194').reduce((a,d)=>a+d.amount,0);
+  // Won/Lost chips reflect the active period filter
+  const periodLabel2={'week':'WK','month':'MO','quarter':'QTD','ytd':'YTD'}[wonPeriod]||'YTD';
+  const periodWon=hsDeals.filter(d=>{
+    if(d.stage!=='2367434193')return false;
+    if(!d.estimatedCloseDate)return false;
+    return new Date(d.estimatedCloseDate)>=start;
+  }).reduce((a,d)=>a+d.amount,0);
+  const periodLost=hsDeals.filter(d=>{
+    if(d.stage!=='2367434194')return false;
+    if(!d.estimatedCloseDate)return false;
+    return new Date(d.estimatedCloseDate)>=start;
+  }).reduce((a,d)=>a+d.amount,0);
   h+=`<div class="wl-row" style="margin-top:8px;">
-    <div class="wl-chip won" onclick="showYTDDeals('won')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="wl-lbl">Won YTD</div><div class="wl-num">${fmt$(allWon)}</div></div>
-    <div class="wl-chip lost" onclick="showYTDDeals('lost')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="wl-lbl">Lost YTD</div><div class="wl-num">${fmt$(allLost)}</div></div>
+    <div class="wl-chip won" onclick="showYTDDeals('won')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="wl-lbl">Won ${periodLabel2}</div><div class="wl-num">${fmt$(periodWon)}</div></div>
+    <div class="wl-chip lost" onclick="showYTDDeals('lost')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="wl-lbl">Lost ${periodLabel2}</div><div class="wl-num">${fmt$(periodLost)}</div></div>
   </div>`;
 
   // Legend removed
@@ -978,10 +987,23 @@ function renderWonDetail(){
 
 function showYTDDeals(type){
   const stage=type==='won'?'2367434193':'2367434194';
-  const label=type==='won'?'Won YTD':'Lost YTD';
+  const periodLbl={'week':'WK','month':'MO','quarter':'QTD','ytd':'YTD'}[wonPeriod]||'YTD';
+  const label=(type==='won'?'Won ':'Lost ')+periodLbl;
   const colour=type==='won'?'var(--green)':'var(--red)';
 
-  let deals=hsDeals.filter(d=>d.stage===stage&&(activeState==='ALL'||o2s(d.owner)===activeState));
+  // Filter by current won period
+  const now2=NOW;
+  let pStart=new Date(now2);
+  if(wonPeriod==='week'){pStart.setDate(now2.getDate()-now2.getDay());}
+  else if(wonPeriod==='month'){pStart=new Date(now2.getFullYear(),now2.getMonth(),1);}
+  else if(wonPeriod==='quarter'){const q=Math.floor(now2.getMonth()/3);pStart=new Date(now2.getFullYear(),q*3,1);}
+  else{pStart=new Date('2026-01-01');}
+  let deals=hsDeals.filter(d=>{
+    if(d.stage!==stage)return false;
+    if(activeState!=='ALL'&&o2s(d.owner)!==activeState)return false;
+    if(!d.estimatedCloseDate)return false;
+    return new Date(d.estimatedCloseDate)>=pStart;
+  });
   if(!deals.length){alert('No '+label+' deals found');return;}
 
   let sortCol='amount', sortDir=-1;
