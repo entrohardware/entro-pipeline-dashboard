@@ -472,7 +472,7 @@ function loadCfg(){
     if(p.hsToken)cfg.hsToken=p.hsToken;
     if(p.pipelineStages)cfg.pipelineStages=p.pipelineStages;
     if(p.ownerMap)cfg.ownerMap=Object.assign({},DEF.ownerMap,p.ownerMap);
-    if(p.deepTargets)cfg.deepTargets=p.deepTargets;
+    cfg.deepTargets=DEF.deepTargets;
     if(p.specTarget)cfg.specTarget=Object.assign({},DEF.specTarget,p.specTarget);
     // stageTargets always use DEF (nested per-state format, don't override from old localStorage)
     cfg.stageTargets=DEF.stageTargets;
@@ -1519,6 +1519,7 @@ function showDeepDiscoveryList(meetings){
     </div>
   </div>`;
   popup.style.display='flex';
+  window._deepListCache=meetings;
 }
 
 function showDeepDiscoveryDetail(m){
@@ -1540,6 +1541,7 @@ function showDeepDiscoveryDetail(m){
         <div style="font-size:12px;color:var(--text3);margin-top:3px">${dateStr}</div>
       </div>
       <div onclick="document.getElementById('deep-popup').remove()" style="cursor:pointer;color:var(--text3);padding:4px 8px;font-size:16px;line-height:1">&#10005;</div>
+      <div onclick="document.getElementById('deep-popup').remove();showDeepDiscoveryList(window._deepListCache||[])" style="cursor:pointer;font-size:11px;color:var(--text3);padding:3px 10px;border:1px solid var(--b2);border-radius:6px;margin-top:4px" onmouseover="this.style.background='var(--surf2)'" onmouseout="this.style.background=''">&#8592; Back</div>
     </div>
     <div style="padding:20px 24px;">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-bottom:8px">Meeting Notes</div>
