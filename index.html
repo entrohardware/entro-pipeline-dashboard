@@ -90,7 +90,7 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
 .mini-btn.active{background:var(--surf3);color:var(--accent2);border-color:var(--accent);}
 
 .stage-list{display:flex;flex-direction:column;flex:1;min-height:0;}
-.stage-row{display:grid;grid-template-columns:145px 1fr 66px;align-items:center;gap:8px;flex:1;}
+.stage-row{display:grid;grid-template-columns:130px 1fr 60px;align-items:center;gap:6px;flex:1;}
 .s-name{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .s-track{height:5px;background:var(--surf3);border-radius:3px;overflow:hidden;}
 .s-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 0.5s ease;}
@@ -206,6 +206,19 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
   .gauge-row{grid-template-columns:1fr;}
   .content{padding:8px;}
   .tile-grid,.gauge-row{gap:8px;}
+  /* Topbar mobile */
+  .topbar{padding:0 12px;height:50px;}
+  .tb-title{font-size:13px;}
+  .tb-sub{display:none;}
+  .tb-left>div:nth-child(2){display:none;}/* hide divider */
+  .hs-pill span:first-child+span{display:none;}/* hide status text, keep dot */
+  .hs-pill{padding:5px 8px;}
+  .tb-btn{width:30px;height:30px;}
+  .tb-left img{height:24px;}
+}
+@media(max-width:400px){
+  .topbar{padding:0 8px;}
+  .tb-left>div:last-child{display:none;}/* hide title block on very small */
 }
 </style>
 </head>
@@ -296,7 +309,7 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
           </div>
         </div>
         <div id="won-detail-comp" style="display:flex;gap:0;border-top:1px solid var(--b1);border-bottom:1px solid var(--b1);margin-top:8px;margin-bottom:8px;flex-shrink:0;"></div>
-        <div id="won-detail-content" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+        <div id="won-detail-content" style="flex:1;min-height:0;display:flex;flex-direction:column;padding:0 2px;">
           <div class="loading"><div class="spin"></div>Loading</div>
         </div>
       </div>
@@ -416,7 +429,7 @@ const DEF={
   specRevTarget:{ALL:80,VIC:80,NSW:80,QLD:80,SA:80,WA:80,TAS:80,ACT:80,NT:80},
   strikeTarget:{ALL:40,VIC:40,NSW:40,QLD:40,SA:40,WA:30,TAS:30,ACT:30,NT:20},
   stageTargets:{ALL:{'2612273595':20000000,'2367434189':10000000,'2367434190':5000000,'2367434191':2000000,'2367434192':3000000,'2369507813':6000000,'2369507814':10000000,'2369507815':2000000},VIC:{'2612273595':5000000,'2367434189':2500000,'2367434190':1200000,'2367434191':500000,'2367434192':800000,'2369507813':1500000,'2369507814':2500000,'2369507815':500000},NSW:{'2612273595':5000000,'2367434189':2500000,'2367434190':1200000,'2367434191':500000,'2367434192':800000,'2369507813':1500000,'2369507814':2500000,'2369507815':500000},QLD:{'2612273595':5000000,'2367434189':2500000,'2367434190':1200000,'2367434191':500000,'2367434192':800000,'2369507813':1500000,'2369507814':2500000,'2369507815':500000},SA:{'2612273595':4000000,'2367434189':2000000,'2367434190':1000000,'2367434191':400000,'2367434192':600000,'2369507813':1200000,'2369507814':2000000,'2369507815':400000},WA:{'2612273595':1000000,'2367434189':500000,'2367434190':200000,'2367434191':100000,'2367434192':200000,'2369507813':300000,'2369507814':500000,'2369507815':100000},TAS:{'2612273595':0,'2367434189':0,'2367434190':0,'2367434191':0,'2367434192':0,'2369507813':0,'2369507814':0,'2369507815':0},ACT:{'2612273595':0,'2367434189':0,'2367434190':0,'2367434191':0,'2367434192':0,'2369507813':0,'2369507814':0,'2369507815':0},NT:{'2612273595':0,'2367434189':0,'2367434190':0,'2367434191':0,'2367434192':0,'2369507813':0,'2369507814':0,'2369507815':0}},
-  forecastTargets:{ALL:{'2026-01':396000,'2026-02':444000,'2026-03':470400,'2026-04':448000,'2026-05':470400,'2026-06':470400,'2026-07':515200,'2026-08':470400,'2026-09':512400,'2026-10':541200,'2026-11':500000,'2026-12':361600,'2027-01':537429,'2027-02':602571,'2027-03':638400,'2027-04':608000,'2027-05':638400},VIC:{'2026-01':99000,'2026-02':111000,'2026-03':118000,'2026-04':112000,'2026-05':118000,'2026-06':118000,'2026-07':129000,'2026-08':118000,'2026-09':128000,'2026-10':135000,'2026-11':125000,'2026-12':90000,'2027-01':134000,'2027-02':151000,'2027-03':160000,'2027-04':152000,'2027-05':160000},NSW:{'2026-01':99000,'2026-02':111000,'2026-03':118000,'2026-04':112000,'2026-05':118000,'2026-06':118000,'2026-07':129000,'2026-08':118000,'2026-09':128000,'2026-10':135000,'2026-11':125000,'2026-12':90000,'2027-01':134000,'2027-02':151000,'2027-03':160000,'2027-04':152000,'2027-05':160000},QLD:{'2026-01':99000,'2026-02':111000,'2026-03':118000,'2026-04':112000,'2026-05':118000,'2026-06':118000,'2026-07':129000,'2026-08':118000,'2026-09':128000,'2026-10':135000,'2026-11':125000,'2026-12':90000,'2027-01':134000,'2027-02':151000,'2027-03':160000,'2027-04':152000,'2027-05':160000},SA:{'2026-01':79000,'2026-02':89000,'2026-03':94000,'2026-04':90000,'2026-05':94000,'2026-06':94000,'2026-07':103000,'2026-08':94000,'2026-09':102000,'2026-10':108000,'2026-11':100000,'2026-12':72000,'2027-01':107000,'2027-02':121000,'2027-03':128000,'2027-04':122000,'2027-05':128000},WA:{'2026-01':20000,'2026-02':22000,'2026-03':24000,'2026-04':22000,'2026-05':24000,'2026-06':24000,'2026-07':26000,'2026-08':24000,'2026-09':26000,'2026-10':27000,'2026-11':25000,'2026-12':18000,'2027-01':27000,'2027-02':30000,'2027-03':32000,'2027-04':30000,'2027-05':32000}},
+  forecastTargets:{ALL:{'2026-01':396000,'2026-02':444000,'2026-03':470400,'2026-04':448000,'2026-05':470400,'2026-06':470400,'2026-07':515200,'2026-08':470400,'2026-09':512400,'2026-10':541200,'2026-11':500000,'2026-12':361600,'2027-01':537429,'2027-02':602571,'2027-03':638400,'2027-04':608000,'2027-05':638400},VIC:{'2026-01':168000,'2026-02':189000,'2026-03':200000,'2026-04':190000,'2026-05':200000,'2026-06':200000,'2026-07':219000,'2026-08':200000,'2026-09':218000,'2026-10':230000,'2026-11':212000,'2026-12':154000,'2027-01':228000,'2027-02':256000,'2027-03':271000,'2027-04':258000,'2027-05':271000},NSW:{'2026-01':99000,'2026-02':111000,'2026-03':118000,'2026-04':112000,'2026-05':118000,'2026-06':118000,'2026-07':129000,'2026-08':118000,'2026-09':128000,'2026-10':135000,'2026-11':125000,'2026-12':90000,'2027-01':134000,'2027-02':151000,'2027-03':160000,'2027-04':152000,'2027-05':160000},QLD:{'2026-01':99000,'2026-02':111000,'2026-03':118000,'2026-04':112000,'2026-05':118000,'2026-06':118000,'2026-07':129000,'2026-08':118000,'2026-09':128000,'2026-10':135000,'2026-11':125000,'2026-12':90000,'2027-01':134000,'2027-02':151000,'2027-03':160000,'2027-04':152000,'2027-05':160000},SA:{'2026-01':40000,'2026-02':44000,'2026-03':47000,'2026-04':45000,'2026-05':47000,'2026-06':47000,'2026-07':52000,'2026-08':47000,'2026-09':51000,'2026-10':54000,'2026-11':50000,'2026-12':36000,'2027-01':54000,'2027-02':60000,'2027-03':64000,'2027-04':61000,'2027-05':64000},WA:{'2026-01':10000,'2026-02':11000,'2026-03':12000,'2026-04':11000,'2026-05':12000,'2026-06':12000,'2026-07':13000,'2026-08':12000,'2026-09':13000,'2026-10':14000,'2026-11':12000,'2026-12':9000,'2027-01':13000,'2027-02':15000,'2027-03':16000,'2027-04':15000,'2027-05':16000}},
   ytd2025:{
     // Calculated from Pipedrive export (deals >= $10k, Jan-May 2025)
     // 2025 uses full Jan-May period (no bulk import issue)
@@ -868,7 +881,7 @@ function renderWonDetail(){
 
   const STATES_LIST=['VIC','NSW','QLD','SA','OTHER'];
   // Annual targets — scale by period
-  const annualTargets={'VIC':1400000,'NSW':1400000,'QLD':1400000,'SA':1120000,'OTHER':280000};
+  const annualTargets={'VIC':2380000,'NSW':1400000,'QLD':1400000,'SA':560000,'OTHER':140000};
   // Scaling factors: YTD=full year, QTD=quarter(3/12), MO=month(1/12), WK=week(1/52)
   const periodScale={'ytd':1,'quarter':3/12,'month':1/12,'week':1/52};
   const scale=periodScale[wonPeriod]||1;
@@ -951,14 +964,14 @@ function renderWonDetail(){
       <div style="flex:1;position:relative;">
         <div class="s-track" style="position:relative;">
           <!-- Non-spec portion (orange) -->
-          <div style="position:absolute;left:0;top:0;bottom:0;width:${nonSpecPct.toFixed(1)}%;background:#1D9E75;border-radius:3px 0 0 3px;"></div>
+          <div style="position:absolute;left:0;top:0;bottom:0;width:${nonSpecPct.toFixed(1)}%;background:#6BBF8E;border-radius:3px 0 0 3px;"></div>
           <!-- Spec portion (darker orange/amber) -->
-          <div style="position:absolute;left:${nonSpecPct.toFixed(1)}%;top:0;bottom:0;width:${specPct.toFixed(1)}%;background:#6BBF8E;border-radius:${nonSpecPct>0?'0':'3px'} 3px 3px ${nonSpecPct>0?'0':'3px'};"></div>
+          <div style="position:absolute;left:${nonSpecPct.toFixed(1)}%;top:0;bottom:0;width:${specPct.toFixed(1)}%;background:#1D9E75;border-radius:${nonSpecPct>0?'0':'3px'} 3px 3px ${nonSpecPct>0?'0':'3px'};"></div>
           <!-- Target tick removed -->
         </div>
-        <div style="font-size:9px;color:var(--text3);text-align:right;margin-top:1px">T: ${fmt$(tgt)}</div>
+        <div style="font-size:9px;color:var(--text3);text-align:right;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">T: ${fmt$(tgt)}</div>
       </div>
-      <div class="s-amt" style="min-width:60px">${fmt$(total_s)}</div>
+      <div class="s-amt" style="min-width:48px;font-size:11px;text-align:right">${fmt$(total_s)}</div>
     </div>`;
   });
 
