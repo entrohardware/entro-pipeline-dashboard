@@ -874,9 +874,9 @@ function setWonPeriod(p,btn){
 function renderWonDetail(){
   const now=NOW;
   let start=new Date(now);
-  if(wonPeriod==='week'){start=new Date(now);start.setDate(now.getDate()-now.getDay());}
-  else if(wonPeriod==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);}
-  else if(wonPeriod==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);}
+  if(wonPeriod==='week'){start=new Date(now);start.setDate(now.getDate()-((now.getDay()+6)%7));start.setHours(0,0,0,0);}
+  else if(wonPeriod==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);start.setHours(0,0,0,0);}
+  else if(wonPeriod==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);start.setHours(0,0,0,0);}
   else{start=new Date('2026-01-01');}
 
   const STATES_LIST=['VIC','NSW','QLD','SA','OTHER'];
@@ -1007,7 +1007,7 @@ function showYTDDeals(type){
   // Filter by current won period
   const now2=NOW;
   let pStart=new Date(now2);
-  if(wonPeriod==='week'){pStart.setDate(now2.getDate()-now2.getDay());}
+  if(wonPeriod==='week'){pStart.setDate(now2.getDate()-((now2.getDay()+6)%7));pStart.setHours(0,0,0,0);}
   else if(wonPeriod==='month'){pStart=new Date(now2.getFullYear(),now2.getMonth(),1);}
   else if(wonPeriod==='quarter'){const q=Math.floor(now2.getMonth()/3);pStart=new Date(now2.getFullYear(),q*3,1);}
   else{pStart=new Date('2026-01-01');}
@@ -1098,9 +1098,9 @@ function showYTDDeals(type){
 function showWonDeals(state,period){
   const now=NOW;
   let start=new Date(now);
-  if(period==='week'){start=new Date(now);start.setDate(now.getDate()-now.getDay());}
-  else if(period==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);}
-  else if(period==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);}
+  if(period==='week'){start=new Date(now);start.setDate(now.getDate()-((now.getDay()+6)%7));start.setHours(0,0,0,0);}
+  else if(period==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);start.setHours(0,0,0,0);}
+  else if(period==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);start.setHours(0,0,0,0);}
   else{start=new Date('2026-01-01');}
 
   const OTHER_STATES=['WA','TAS','ACT','NT'];
@@ -1576,7 +1576,7 @@ function setDeepPeriod(p,btn){
   renderDeepDisc();
 }
 function renderDeepDisc(){
-  function getStart(){const d=new Date(NOW);if(deepPeriod==='week'){d.setDate(d.getDate()-d.getDay());return d;}if(deepPeriod==='month')return new Date(d.getFullYear(),d.getMonth(),1);if(deepPeriod==='quarter'){const q=Math.floor(d.getMonth()/3);return new Date(d.getFullYear(),q*3,1);}return new Date(d.getFullYear(),0,1);}
+  function getStart(){const d=new Date(NOW);if(deepPeriod==='week'){d.setDate(d.getDate()-((d.getDay()+6)%7));d.setHours(0,0,0,0);return d;}if(deepPeriod==='month'){const m=new Date(d.getFullYear(),d.getMonth(),1);m.setHours(0,0,0,0);return m;}if(deepPeriod==='quarter'){const q=Math.floor(d.getMonth()/3);const qs=new Date(d.getFullYear(),q*3,1);qs.setHours(0,0,0,0);return qs;}return new Date(d.getFullYear(),0,1);}
   const start=getStart(),stk=skk();
   const filtered=hsMeetings.filter(m=>{if(!m.type||!m.type.toLowerCase().includes('deep discovery'))return false;if(!m.date||new Date(m.date)<start)return false;if(activeState==='ALL')return true;return o2s(m.owner)===stk;});
   const count=filtered.length;
