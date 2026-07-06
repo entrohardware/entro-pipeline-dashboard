@@ -220,13 +220,35 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
   .topbar{padding:0 8px;}
   .tb-left>div:last-child{display:none;}/* hide title block on very small */
 }
+
+/* ---------- LOGIN SCREEN ---------- */
+#login-screen{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+#login-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,var(--cream3),transparent 60%);pointer-events:none;}
+.login-card{position:relative;width:340px;max-width:88vw;background:var(--surf);border:1px solid var(--b1);border-radius:16px;padding:34px 30px 28px;text-align:center;box-shadow:0 12px 48px rgba(0,0,0,0.28);}
+.login-logo{height:34px;width:auto;border-radius:4px;display:inline-block;margin-bottom:16px;}
+.login-title{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.2px;}
+.login-sub{font-size:11px;color:var(--text3);margin-top:3px;margin-bottom:22px;}
+.login-input{width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--b2);background:var(--surf2);color:var(--text);font-family:'ABCFavorit',sans-serif;font-size:13px;outline:none;transition:border-color 0.15s;letter-spacing:0.02em;}
+.login-input:focus{border-color:var(--accent);}
+.login-btn{width:100%;margin-top:12px;padding:11px 13px;border-radius:9px;border:1px solid var(--accent2);background:var(--accent2);color:#0D0D0D;font-family:'ABCFavorit',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;transition:opacity 0.15s;}
+.login-btn:hover{opacity:0.85;}
+.login-error{font-size:11px;color:var(--red);margin-top:12px;min-height:14px;letter-spacing:0.01em;}
 </style>
 </head>
 <body>
 
+<div id="login-screen">
+  <div class="login-card">
+    <img class="login-logo" src="data:image/png;base64,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/wACgHu5moYGFVTRmZ2NjVVRzTF27TRMx7OZfh7+6J+2NO+00f7qdfyhX9v9t/VVX4tSsYNYff3RP2xp32mj/c9/dE/bGnfaaP8Adk8A7T208jHyuvOoXsa/av2pw8aIrt1xVTP9HHnDiwAL8dhT5C6frXI+6hQdfjsKfIXT9a5H3UA6v1G2dom/No5m2tex4u4uTTzRXEfHsXI/RuUT5VRP+scxPMTMM3erWwNb6b7yydu61bme7PfxcmKeKMqzMz3blP3THlMTHk1EQHrn0x0nqjs25pGb3LGoWO9c07N7vNWPdmPPzmiriIqjz4ifTEAzMdt7Efy/6d/2eV+HLk+7tvavtTcebt/XcSrF1DCuTbu258Y9kxPnTMcTEx6YmHWOxH8v+nf9nlfhyDQRktqf9ZZX+NX98taWS2p/1llf41f3yD53dOw7k42J1u92ysi1Yt+9eRHfuVxTHPNHnLhYDWH390T9sad9po/3f3Y1jSb92mzY1TBu3K54pooyKZmZ9kRLJtP+zl8umzfrW194NMnw3tY0izdqtXtVwbdyieKqasiiJpn1THL7mYnXv5bN6fXeV+LUDSv390T9sad9po/3UH7aeRj5XXnUL2NftX7U4eNEV264qpn+jjzhxYAABri+TL1PTcS77ll6hiY9zjnuXb1NM8eviZfWoR27Pl0n6qx/vrBef390T9sad9po/wB364mp6bl3fcsTUMTIucc9y1epqnj18RLJl+uHk5GHlWsrEyLuPkWqort3bVc010VR6JiY8Yn2g1E6j7A2r1A0SvStzaXayqZpmLORTERfx5n9a3XxzTP/AInziY8GdHWbp/qXTXfmZtrUKpvW6eLuHk93uxkWKpnu18eU+ExMeVUTHj6V+OzVunVt49F9B1zXO/XqFdFyzdvVU8e7+53KqIue2ZimOZ9fLif8ohp+N+RbQ1SKKYyYuZOPNUR41UcW6oifonn96QVBB/tNNVVUU00zVVM8RERzMyCf9Delmt9U91Rpmnz+S6fj92vUM+qnmnHtzPoiP1q54nu0+fpniImY0F6adOtpdPNGp03bGl28eZpiL2VXEVZGRPrrr45n6I4iPKIeb0B2BjdOememaHFminULluMjUrkemvIriJqjnzinwoj2U8+cot2oetFvpfoVrTtJot39zalbqqxaa45oxrfPE3qo8/HmKafR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" alt="ENTRO">
+    <div class="login-title">ENTRO Pipeline Dashboard</div>
+    <div class="login-sub">Enter password to continue</div>
+    <input type="password" id="login-password" class="login-input" placeholder="Password" autocomplete="current-password" />
+    <button class="login-btn" onclick="attemptLogin()">Unlock</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
 
-
-<div class="main">
+<div class="main" id="app-main" style="display:none;">
   <div class="topbar">
     <div class="tb-left">
       <img src="data:image/png;base64,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/wACgHu5moYGFVTRmZ2NjVVRzTF27TRMx7OZfh7+6J+2NO+00f7qdfyhX9v9t/VVX4tSsYNYff3RP2xp32mj/c9/dE/bGnfaaP8Adk8A7T208jHyuvOoXsa/av2pw8aIrt1xVTP9HHnDiwAL8dhT5C6frXI+6hQdfjsKfIXT9a5H3UA6v1G2dom/No5m2tex4u4uTTzRXEfHsXI/RuUT5VRP+scxPMTMM3erWwNb6b7yydu61bme7PfxcmKeKMqzMz3blP3THlMTHk1EQHrn0x0nqjs25pGb3LGoWO9c07N7vNWPdmPPzmiriIqjz4ifTEAzMdt7Efy/6d/2eV+HLk+7tvavtTcebt/XcSrF1DCuTbu258Y9kxPnTMcTEx6YmHWOxH8v+nf9nlfhyDQRktqf9ZZX+NX98taWS2p/1llf41f3yD53dOw7k42J1u92ysi1Yt+9eRHfuVxTHPNHnLhYDWH390T9sad9po/3f3Y1jSb92mzY1TBu3K54pooyKZmZ9kRLJtP+zl8umzfrW194NMnw3tY0izdqtXtVwbdyieKqasiiJpn1THL7mYnXv5bN6fXeV+LUDSv390T9sad9po/3UH7aeRj5XXnUL2NftX7U4eNEV264qpn+jjzhxYAABri+TL1PTcS77ll6hiY9zjnuXb1NM8eviZfWoR27Pl0n6qx/vrBef390T9sad9po/wB364mp6bl3fcsTUMTIucc9y1epqnj18RLJl+uHk5GHlWsrEyLuPkWqort3bVc010VR6JiY8Yn2g1E6j7A2r1A0SvStzaXayqZpmLORTERfx5n9a3XxzTP/AInziY8GdHWbp/qXTXfmZtrUKpvW6eLuHk93uxkWKpnu18eU+ExMeVUTHj6V+OzVunVt49F9B1zXO/XqFdFyzdvVU8e7+53KqIue2ZimOZ9fLif8ohp+N+RbQ1SKKYyYuZOPNUR41UcW6oifonn96QVBB/tNNVVUU00zVVM8RERzMyCf9Delmt9U91Rpmnz+S6fj92vUM+qnmnHtzPoiP1q54nu0+fpniImY0F6adOtpdPNGp03bGl28eZpiL2VXEVZGRPrrr45n6I4iPKIeb0B2BjdOememaHFminULluMjUrkemvIriJqjnzinwoj2U8+cot2oetFvpfoVrTtJot39zalbqqxaa45oxrfPE3qo8/HmKafR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" alt="ENTRO" style="height:28px;width:auto;border-radius:3px;display:block;">
@@ -301,11 +323,14 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
             <div class="t-label">Deals Won</div>
             <div id="won-detail-total" class="t-val" style="color:var(--green)">—</div>
           </div>
-          <div id="won-detail-period-btns" style="display:flex;gap:4px;margin-top:2px;">
+          <div id="won-detail-period-btns" style="display:flex;gap:4px;margin-top:2px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
             <button class="mini-btn" data-wp="week" onclick="setWonPeriod('week',this)">WK</button>
             <button class="mini-btn" data-wp="month" onclick="setWonPeriod('month',this)">MO</button>
             <button class="mini-btn" data-wp="quarter" onclick="setWonPeriod('quarter',this)">QTD</button>
             <button class="mini-btn active" data-wp="ytd" onclick="setWonPeriod('ytd',this)">YTD</button>
+            <button class="mini-btn" data-wp="lweek" onclick="setWonPeriod('lweek',this)" title="Last Week">LW</button>
+            <button class="mini-btn" data-wp="lmonth" onclick="setWonPeriod('lmonth',this)" title="Last Month">LM</button>
+            <button class="mini-btn" data-wp="lquarter" onclick="setWonPeriod('lquarter',this)" title="Last Quarter">LQ</button>
           </div>
         </div>
         <div id="won-detail-comp" style="display:flex;gap:0;border-top:1px solid var(--b1);border-bottom:1px solid var(--b1);margin-top:8px;margin-bottom:8px;flex-shrink:0;"></div>
@@ -320,11 +345,14 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
         <div class="t-accent"></div>
         <div class="t-hdr">
           <div><div class="t-label">Deep Discoveries</div></div>
-          <div class="t-actions" id="deep-period-btns">
+          <div class="t-actions" id="deep-period-btns" style="flex-wrap:wrap;justify-content:flex-end;row-gap:4px;">
             <button class="mini-btn active" data-period="week" onclick="setDeepPeriod('week',this)">WK</button>
             <button class="mini-btn" data-period="month" onclick="setDeepPeriod('month',this)">MO</button>
             <button class="mini-btn" data-period="quarter" onclick="setDeepPeriod('quarter',this)">QTD</button>
             <button class="mini-btn" data-period="ytd" onclick="setDeepPeriod('ytd',this)">YTD</button>
+            <button class="mini-btn" data-period="lweek" onclick="setDeepPeriod('lweek',this)" title="Last Week">LW</button>
+            <button class="mini-btn" data-period="lmonth" onclick="setDeepPeriod('lmonth',this)" title="Last Month">LM</button>
+            <button class="mini-btn" data-period="lquarter" onclick="setDeepPeriod('lquarter',this)" title="Last Quarter">LQ</button>
           </div>
         </div>
         <div class="gauge-wrap" id="deep-gauge-wrap"><div class="loading"><div class="spin"></div></div></div>
@@ -444,6 +472,69 @@ const DEF={
 let cfg=JSON.parse(JSON.stringify(DEF));
 let activeState='ALL',deepPeriod='week',wonPeriod='ytd',hsDeals=[],hsMeetings=[],isLive=false;
 const CHARTS={};
+
+/* ---------- Shared period range helper (used by Deals Won, Deep Discoveries, VS Last Month) ---------- */
+const PERIOD_LABELS={'week':'WK','month':'MO','quarter':'QTD','ytd':'YTD','lweek':'LW','lmonth':'LM','lquarter':'LQ'};
+const PERIOD_SCALE={'ytd':1,'quarter':3/12,'month':1/12,'week':1/52,'lquarter':3/12,'lmonth':1/12,'lweek':1/52};
+// Base period each "last X" derives its target magnitude from
+const PERIOD_TARGET_KEY={'week':'week','month':'month','quarter':'quarter','ytd':'ytd','lweek':'week','lmonth':'month','lquarter':'quarter'};
+function getPeriodRange(period){
+  const now=NOW;
+  let start=new Date(now), end=null;
+  if(period==='week'){start=new Date(now);start.setDate(now.getDate()-((now.getDay()+6)%7));start.setHours(0,0,0,0);}
+  else if(period==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);start.setHours(0,0,0,0);}
+  else if(period==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);start.setHours(0,0,0,0);}
+  else if(period==='lweek'){
+    const thisWeekStart=new Date(now);thisWeekStart.setDate(now.getDate()-((now.getDay()+6)%7));thisWeekStart.setHours(0,0,0,0);
+    end=thisWeekStart;
+    start=new Date(thisWeekStart);start.setDate(start.getDate()-7);
+  }
+  else if(period==='lmonth'){
+    const thisMonthStart=new Date(now.getFullYear(),now.getMonth(),1);
+    end=thisMonthStart;
+    start=new Date(thisMonthStart.getFullYear(),thisMonthStart.getMonth()-1,1);
+  }
+  else if(period==='lquarter'){
+    const q=Math.floor(now.getMonth()/3);
+    const thisQStart=new Date(now.getFullYear(),q*3,1);
+    end=thisQStart;
+    start=new Date(thisQStart.getFullYear(),thisQStart.getMonth()-3,1);
+  }
+  else{start=new Date('2026-01-01');}
+  return {start,end};
+}
+
+/* ---------- LOGIN ---------- */
+const APP_PASSWORD='Entro2026!';
+function attemptLogin(){
+  const inp=document.getElementById('login-password');
+  const err=document.getElementById('login-error');
+  if(inp.value===APP_PASSWORD){
+    try{sessionStorage.setItem('entro_unlocked','1');}catch(e){}
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-main').style.display='flex';
+    err.textContent='';
+  }else{
+    err.textContent='Incorrect password — try again.';
+    inp.value='';
+    inp.focus();
+  }
+}
+(function checkLoginState(){
+  document.addEventListener('DOMContentLoaded',function(){
+    const inp=document.getElementById('login-password');
+    if(inp){
+      inp.addEventListener('keydown',function(e){if(e.key==='Enter')attemptLogin();});
+      inp.focus();
+    }
+    let unlocked=false;
+    try{unlocked=sessionStorage.getItem('entro_unlocked')==='1';}catch(e){}
+    if(unlocked){
+      document.getElementById('login-screen').style.display='none';
+      document.getElementById('app-main').style.display='flex';
+    }
+  });
+})();
 
 (function buildMock(){
   const owners=Object.keys(DEF.ownerMap);
@@ -872,19 +963,14 @@ function setWonPeriod(p,btn){
 }
 
 function renderWonDetail(){
-  const now=NOW;
-  let start=new Date(now);
-  if(wonPeriod==='week'){start=new Date(now);start.setDate(now.getDate()-((now.getDay()+6)%7));start.setHours(0,0,0,0);}
-  else if(wonPeriod==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);start.setHours(0,0,0,0);}
-  else if(wonPeriod==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);start.setHours(0,0,0,0);}
-  else{start=new Date('2026-01-01');}
+  const {start,end}=getPeriodRange(wonPeriod);
+  const scale=PERIOD_SCALE[wonPeriod]||1;
+  const periodLabelShort=PERIOD_LABELS[wonPeriod]||'YTD';
+  const inRange=ds=>{const t=new Date(ds);return t>=start&&(end?t<end:true);};
 
   const STATES_LIST=['VIC','NSW','QLD','SA','OTHER'];
   // Annual targets — scale by period
   const annualTargets={'VIC':2380000,'NSW':1400000,'QLD':1400000,'SA':560000,'OTHER':140000};
-  // Scaling factors: YTD=full year, QTD=quarter(3/12), MO=month(1/12), WK=week(1/52)
-  const periodScale={'ytd':1,'quarter':3/12,'month':1/12,'week':1/52};
-  const scale=periodScale[wonPeriod]||1;
   const stateTargets={};
   Object.keys(annualTargets).forEach(s=>{stateTargets[s]=Math.round(annualTargets[s]*scale/1000)*1000;});
 
@@ -892,7 +978,7 @@ function renderWonDetail(){
   const won=hsDeals.filter(d=>{
     if(d.stage!=='2367434193')return false;
     if(!d.estimatedCloseDate)return false;
-    return new Date(d.estimatedCloseDate)>=start;
+    return inRange(d.estimatedCloseDate);
   });
 
   const total=won.reduce((a,d)=>a+d.amount,0);
@@ -900,11 +986,9 @@ function renderWonDetail(){
 
   // ── Target, YTD 2025 comparison ────────────────────────────────
   const annualWonTarget=5600000;
-  const periodScaleWon={'ytd':1,'quarter':3/12,'month':1/12,'week':1/52};
-  const scaleWon=periodScaleWon[wonPeriod]||1;
-  const periodWonTarget=Math.round(annualWonTarget*scaleWon);
+  const periodWonTarget=Math.round(annualWonTarget*scale);
   const annual2025Won=1690000;
-  const ytd2025Won=Math.round(annual2025Won*scaleWon);
+  const ytd2025Won=Math.round(annual2025Won*scale);
   const vsPct=ytd2025Won>0?Math.round(((total-ytd2025Won)/ytd2025Won)*100):0;
   const targetPct=periodWonTarget>0?Math.round((total/periodWonTarget)*100):0;
   const vsUp=vsPct>=0;
@@ -912,7 +996,7 @@ function renderWonDetail(){
   if(compEl){
     compEl.innerHTML=
       '<div style="flex:1;padding:8px 0 8px 4px;border-right:1px solid var(--b1)">'+
-        '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:2px">Target '+wonPeriod.toUpperCase()+'</div>'+
+        '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:2px">Target '+periodLabelShort+'</div>'+
         '<div style="font-size:13px;font-weight:700;color:var(--accent2)">'+fmt$(periodWonTarget)+'</div>'+
         '<div style="font-size:10px;color:var(--text3);margin-top:1px">'+targetPct+'% achieved</div>'+
       '</div>'+
@@ -975,22 +1059,20 @@ function renderWonDetail(){
     </div>`;
   });
 
-  // Won/Lost YTD totals (always YTD regardless of period filter)
-  // Won/Lost chips reflect the active period filter
-  const periodLabel2={'week':'WK','month':'MO','quarter':'QTD','ytd':'YTD'}[wonPeriod]||'YTD';
+  // Won/Lost totals reflect the active period filter
   const periodWon=hsDeals.filter(d=>{
     if(d.stage!=='2367434193')return false;
     if(!d.estimatedCloseDate)return false;
-    return new Date(d.estimatedCloseDate)>=start;
+    return inRange(d.estimatedCloseDate);
   }).reduce((a,d)=>a+d.amount,0);
   const periodLost=hsDeals.filter(d=>{
     if(d.stage!=='2367434194')return false;
     if(!d.estimatedCloseDate)return false;
-    return new Date(d.estimatedCloseDate)>=start;
+    return inRange(d.estimatedCloseDate);
   }).reduce((a,d)=>a+d.amount,0);
   h+=`<div class="wl-row" style="margin-top:8px;">
-    <div class="wl-chip won" onclick="showYTDDeals('won')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="wl-lbl">Won ${periodLabel2}</div><div class="wl-num">${fmt$(periodWon)}</div></div>
-    <div class="wl-chip lost" onclick="showYTDDeals('lost')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="wl-lbl">Lost ${periodLabel2}</div><div class="wl-num">${fmt$(periodLost)}</div></div>
+    <div class="wl-chip won" onclick="showYTDDeals('won')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="wl-lbl">Won ${periodLabelShort}</div><div class="wl-num">${fmt$(periodWon)}</div></div>
+    <div class="wl-chip lost" onclick="showYTDDeals('lost')" style="cursor:pointer;transition:opacity 0.15s" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><div class="wl-lbl">Lost ${periodLabelShort}</div><div class="wl-num">${fmt$(periodLost)}</div></div>
   </div>`;
 
   // Legend removed
@@ -1000,22 +1082,17 @@ function renderWonDetail(){
 
 function showYTDDeals(type){
   const stage=type==='won'?'2367434193':'2367434194';
-  const periodLbl={'week':'WK','month':'MO','quarter':'QTD','ytd':'YTD'}[wonPeriod]||'YTD';
+  const {start:pStart,end:pEnd}=getPeriodRange(wonPeriod);
+  const periodLbl=PERIOD_LABELS[wonPeriod]||'YTD';
   const label=(type==='won'?'Won ':'Lost ')+periodLbl;
   const colour=type==='won'?'var(--green)':'var(--red)';
 
-  // Filter by current won period
-  const now2=NOW;
-  let pStart=new Date(now2);
-  if(wonPeriod==='week'){pStart.setDate(now2.getDate()-((now2.getDay()+6)%7));pStart.setHours(0,0,0,0);}
-  else if(wonPeriod==='month'){pStart=new Date(now2.getFullYear(),now2.getMonth(),1);}
-  else if(wonPeriod==='quarter'){const q=Math.floor(now2.getMonth()/3);pStart=new Date(now2.getFullYear(),q*3,1);}
-  else{pStart=new Date('2026-01-01');}
   let deals=hsDeals.filter(d=>{
     if(d.stage!==stage)return false;
     if(activeState!=='ALL'&&o2s(d.owner)!==activeState)return false;
     if(!d.estimatedCloseDate)return false;
-    return new Date(d.estimatedCloseDate)>=pStart;
+    const t=new Date(d.estimatedCloseDate);
+    return t>=pStart&&(pEnd?t<pEnd:true);
   });
   if(!deals.length){alert('No '+label+' deals found');return;}
 
@@ -1096,12 +1173,8 @@ function showYTDDeals(type){
 }
 
 function showWonDeals(state,period){
-  const now=NOW;
-  let start=new Date(now);
-  if(period==='week'){start=new Date(now);start.setDate(now.getDate()-((now.getDay()+6)%7));start.setHours(0,0,0,0);}
-  else if(period==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);start.setHours(0,0,0,0);}
-  else if(period==='quarter'){const q=Math.floor(now.getMonth()/3);start=new Date(now.getFullYear(),q*3,1);start.setHours(0,0,0,0);}
-  else{start=new Date('2026-01-01');}
+  const {start,end}=getPeriodRange(period);
+  const periodLabel={'week':'This Week','month':'This Month','quarter':'QTD','ytd':'YTD','lweek':'Last Week','lmonth':'Last Month','lquarter':'Last Quarter'}[period]||period;
 
   const OTHER_STATES=['WA','TAS','ACT','NT'];
   let deals=hsDeals.filter(d=>{
@@ -1110,10 +1183,10 @@ function showWonDeals(state,period){
     if(state==='OTHER'){if(!OTHER_STATES.includes(ds))return false;}
     else{if(ds!==state)return false;}
     if(!d.estimatedCloseDate)return false;
-    return new Date(d.estimatedCloseDate)>=start;
+    const t=new Date(d.estimatedCloseDate);
+    return t>=start&&(end?t<end:true);
   });
 
-  const periodLabel={'week':'This Week','month':'This Month','quarter':'QTD','ytd':'YTD'}[period]||period;
   let sortCol='amount', sortDir=-1;
 
   function getRows(data){
@@ -1385,7 +1458,7 @@ function renderForecast(deals){
 }
 
 // Extended gauge with explicit colour and target marker line on arc
-function drawGaugeColour(id,value,max,target,col,sublabel,yoy){
+function drawGaugeColour(id,value,max,target,col,sublabel,yoy,lastMonth){
   // Arc spans 0 → target. Fill shows value within that range.
   // e.g. value=28, target=40: fill = 28/40 = 70% of arc
   const fillPct=target>0?Math.min(value/target,1.05):0;
@@ -1411,6 +1484,15 @@ function drawGaugeColour(id,value,max,target,col,sublabel,yoy){
       '<div class="yoy-cell"><div class="yoy-lbl">vs 2025</div><div class="yoy-delta '+(up?'d-up':'d-dn')+'">'+(up?'&#9650;':'&#9660;')+' '+(up?'+':'')+Math.round(delta)+'%</div></div>'+
       '</div>';
   }
+  let lmH='';
+  if(lastMonth!==undefined&&lastMonth!==null){
+    const delta2=value-lastMonth;const up2=delta2>=0;
+    lmH='<div class="yoy-row">'+
+      '<div class="yoy-cell"><div class="yoy-lbl">Current</div><div class="yoy-num" style="color:'+col+'">'+dispVal+'</div></div>'+
+      '<div class="yoy-cell"><div class="yoy-lbl">Last Month</div><div class="yoy-num">'+lastMonth+'%</div></div>'+
+      '<div class="yoy-cell"><div class="yoy-lbl">vs Last Month</div><div class="yoy-delta '+(up2?'d-up':'d-dn')+'">'+(up2?'&#9650;':'&#9660;')+' '+(up2?'+':'')+Math.round(delta2)+'%</div></div>'+
+      '</div>';
+  }
   document.getElementById(id).innerHTML=
     '<div class="gauge-svg-area">'+
     '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" style="overflow:visible;display:block;margin:0 auto;">'+
@@ -1428,7 +1510,7 @@ function drawGaugeColour(id,value,max,target,col,sublabel,yoy){
     '</div>'+
     '</div>'+
     '<div class="gauge-meta"><span style="color:var(--text3)">Target</span> <span class="g-chip" style="color:var(--accent2);border-color:var(--accent)">'+target+'%</span><span class="g-note"> &mdash; '+Math.round(fillPct*100)+'% of target</span></div>'+
-    yoyH;
+    yoyH+lmH;
 }
 function drawGauge(id,value,max,sublabel,yoy,showPct){
   const pct=max>0?Math.min(1.05,value/max):0;
@@ -1576,12 +1658,20 @@ function setDeepPeriod(p,btn){
   renderDeepDisc();
 }
 function renderDeepDisc(){
-  function getStart(){const d=new Date(NOW);if(deepPeriod==='week'){d.setDate(d.getDate()-((d.getDay()+6)%7));d.setHours(0,0,0,0);return d;}if(deepPeriod==='month'){const m=new Date(d.getFullYear(),d.getMonth(),1);m.setHours(0,0,0,0);return m;}if(deepPeriod==='quarter'){const q=Math.floor(d.getMonth()/3);const qs=new Date(d.getFullYear(),q*3,1);qs.setHours(0,0,0,0);return qs;}return new Date(d.getFullYear(),0,1);}
-  const start=getStart(),stk=skk();
-  const filtered=hsMeetings.filter(m=>{if(!m.type||!m.type.toLowerCase().includes('deep discovery'))return false;if(!m.date||new Date(m.date)<start)return false;if(activeState==='ALL')return true;return o2s(m.owner)===stk;});
+  const {start,end}=getPeriodRange(deepPeriod);
+  const stk=skk();
+  const filtered=hsMeetings.filter(m=>{
+    if(!m.type||!m.type.toLowerCase().includes('deep discovery'))return false;
+    if(!m.date)return false;
+    const t=new Date(m.date);
+    if(t<start||(end&&t>=end))return false;
+    if(activeState==='ALL')return true;
+    return o2s(m.owner)===stk;
+  });
   const count=filtered.length;
-  const tObj=cfg.deepTargets[deepPeriod]||{};const target=tObj[stk]!==undefined?tObj[stk]:(tObj['ALL']||36);
-  drawGauge('deep-gauge-wrap',count,target||1,deepPeriod.toUpperCase(),null,false);
+  const targetKey=PERIOD_TARGET_KEY[deepPeriod]||deepPeriod;
+  const tObj=cfg.deepTargets[targetKey]||{};const target=tObj[stk]!==undefined?tObj[stk]:(tObj['ALL']||36);
+  drawGauge('deep-gauge-wrap',count,target||1,PERIOD_LABELS[deepPeriod]||deepPeriod.toUpperCase(),null,false);
   // Make gauge number clickable to show meeting popup
   const gaugeEl=document.getElementById('deep-gauge-wrap');
   if(gaugeEl){
@@ -1630,7 +1720,12 @@ function renderSpecRev(deals){try{
   if(vsRevTarget>=0.25&&vsRevTarget<0.75)revCol='#D48020';
   else if(vsRevTarget>=0.75&&vsRevTarget<1.0)revCol='#C8A800';
   else if(vsRevTarget>=1.0)revCol='#1D9E75';
-  drawGaugeColour('specrev-gauge-wrap',specRevPct,100,specRevTarget,revCol,fmt$(entroVal)+' of '+fmt$(totalVal)+' won',yoy);
+  // VS Last Month comparison
+  const {start:lmStart,end:lmEnd}=getPeriodRange('lmonth');
+  const wonLM=won.filter(d=>d.estimatedCloseDate&&new Date(d.estimatedCloseDate)>=lmStart&&new Date(d.estimatedCloseDate)<lmEnd);
+  const totalLM=wonLM.reduce((a,d)=>a+(d.amount||0),0);
+  const lastMonthPct=totalLM>0?Math.round((wonLM.filter(d=>d.specStatus==='Entro Spec'||d.specStatus==='Spec').reduce((a,d)=>a+(d.amount||0),0)/totalLM)*100):null;
+  drawGaugeColour('specrev-gauge-wrap',specRevPct,100,specRevTarget,revCol,fmt$(entroVal)+' of '+fmt$(totalVal)+' won',yoy,lastMonthPct);
 }catch(e){console.error('renderSpecRev:',e);document.getElementById('specrev-gauge-wrap').innerHTML='<div class="loading-state" style="height:120px"><span style="color:var(--text3);font-size:11px">Error loading data</span></div>';}}
 function renderStrike(deals){try{
   const won=deals.filter(d=>d.stage==='2367434193'||d.stage==='Project Handover/Won').reduce((a,d)=>a+d.amount,0);
@@ -1649,8 +1744,15 @@ function renderStrike(deals){try{
   if(vsTarget>=0.25&&vsTarget<0.75)gaugeCol='#D48020';
   else if(vsTarget>=0.75&&vsTarget<1.0)gaugeCol='#C8A800';
   else if(vsTarget>=1.0)gaugeCol='#1D9E75';
+  // VS Last Month comparison
+  const {start:lmStart,end:lmEnd}=getPeriodRange('lmonth');
+  const inLM=d=>d.estimatedCloseDate&&new Date(d.estimatedCloseDate)>=lmStart&&new Date(d.estimatedCloseDate)<lmEnd;
+  const wonLM=deals.filter(d=>(d.stage==='2367434193'||d.stage==='Project Handover/Won')&&inLM(d)).reduce((a,d)=>a+d.amount,0);
+  const lostLM=deals.filter(d=>(d.stage==='2367434194'||d.stage==='Closed Lost')&&inLM(d)).reduce((a,d)=>a+d.amount,0);
+  const totalLM=wonLM+lostLM;
+  const lastMonthRate=totalLM>0?Math.round((wonLM/totalLM)*100):null;
   // Draw gauge: value=strikeRate, max=100, but colour based on vs target
-  drawGaugeColour('strike-gauge-wrap',strikeRate,100,strikeTarget,gaugeCol,fmt$(won)+' won',yoy);
+  drawGaugeColour('strike-gauge-wrap',strikeRate,100,strikeTarget,gaugeCol,fmt$(won)+' won',yoy,lastMonthRate);
 }catch(e){console.error('renderStrike:',e);document.getElementById('strike-gauge-wrap').innerHTML='<div class="loading-state" style="height:120px"><span style="color:var(--text3);font-size:11px">Error loading data</span></div>';}}
 
 function selectState(state){activeState=state;document.querySelectorAll('.state-pill').forEach(p=>p.classList.toggle('active',p.dataset.state===state));renderAll();}
