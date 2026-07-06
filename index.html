@@ -394,12 +394,11 @@ body{font-family:'ABCFavorit',sans-serif;background:var(--bg);color:var(--text);
     <div class="m-body">
       <div class="tab-pane active" id="tab-hubspot">
         <div class="m-sect">
-          <div class="sect-ttl">Private App Token</div>
-          <div class="info-note">Create a <strong>Private App</strong> in HubSpot &#8594; Settings &#8594; Integrations &#8594; Private Apps. Required scopes: <code>crm.objects.deals.read</code>, <code>crm.objects.contacts.read</code>, <code>crm.objects.owners.read</code>, <code>crm.schemas.custom.read</code>, <code>crm.objects.custom.read</code>, <code>timeline</code>, <code>crm.schemas.appointments.read</code>.</div>
+          <div class="sect-ttl">HubSpot Connection</div>
+          <div class="info-note">This dashboard connects to HubSpot through a secure server-side proxy. The credential lives on the server, never in this page or your browser — there's nothing to enter here.</div>
           <div class="hs-row">
-            <input type="password" class="hs-tok" id="hs-token-input" placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-            <button class="btn-p" onclick="saveHubSpotToken()">Connect</button>
-            <button class="btn-g" onclick="clearHubSpotToken()">Disconnect</button>
+            <button class="btn-p" onclick="reconnectHubSpot()">Reconnect Now</button>
+            <button class="btn-g" onclick="useDemoData()">Use Demo Data</button>
           </div>
           <div id="hs-connect-status" style="margin-top:7px;font-size:11px;color:var(--text3);"></div>
         </div>
@@ -549,7 +548,7 @@ function attemptLogin(){
   });
 })();
 
-(function buildMock(){
+function buildMock(){
   const owners=Object.keys(DEF.ownerMap);
   const stages=[...DEF.pipelineStages];
   const names=['Mayfair Penrith 13715AA','Scape A\'Beckett 15171AA','Embracia Residential 12302AA','4B3 District Living','Sonic Melbourne Pathology','Ecove SOP 12302AA','Paradise Dam 15833AA','Acacia Apartments Alexandria','274 North Terrace 16070AA','Mastery Waterloo 16553AB','Airtrunk Mel2 16497AA','SOL Maroochydore 16815AA','Palmiere Jefferson Lane','Anchorage Sandstone 16091AB','Whitley Mt Gravatt 16025AA','Orleton West End QLD','ORO 75 Longland St','Nera Residences','GT Insurance HQ','Dubbo Village 15834AA','Paradise Place Surfers','Trump Tower Surfers Paradise','2 Fitzwilliam Parramatta','Victoria Albert Broadbeach','Palmera Residences Surfers','88 North Terrace Student Accomm','Chatswood Grand Residences','Royal Apartments Kent Town','The Butterfly Morrow St','ELISE Palm Beach'];
@@ -573,7 +572,8 @@ function attemptLogin(){
     mtgs.push({id:'mt'+i,owner,type:Math.random()>0.35?'Deep Discovery':'Spec Partner F2F',date:addD(NOW,-Math.floor(Math.random()*90)).toISOString()});
   }
   hsMeetings=[...mtgs];
-})();
+}
+buildMock();
 
 function fmt$(n){if(n===undefined||n===null||isNaN(n))return'--';if(n>=1000000)return'A$'+(Math.round(n/100000)/10).toFixed(1)+'M';if(n>=1000)return'A$'+Math.round(n/1000)+'K';return'A$'+Math.round(n).toLocaleString();}
 function fmtFull$(n){if(n===undefined||n===null||isNaN(n))return'--';return'$'+n.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -586,7 +586,6 @@ function loadCfg(){
   try{
     const s=localStorage.getItem('entro_cfg4');if(!s)return;
     const p=JSON.parse(s);cfg=JSON.parse(JSON.stringify(DEF));
-    if(p.hsToken)cfg.hsToken=p.hsToken;
     if(p.pipelineStages)cfg.pipelineStages=p.pipelineStages;
     if(p.ownerMap)cfg.ownerMap=Object.assign({},DEF.ownerMap,p.ownerMap);
     cfg.deepTargets=DEF.deepTargets;
@@ -615,7 +614,6 @@ async function fetchT(url, opts={}, ms=15000){
 }
 
 async function fetchHubSpot(){
-  if(!cfg.hsToken){isLive=false;updateStatus();return;}
   try{
     let allDeals=[],after=undefined,pages=0;
     const PROPS=['dealname','amount','dealstage','hubspot_owner_id','closedate',
@@ -640,7 +638,7 @@ async function fetchHubSpot(){
       };
       if(a1)body.after=a1;
       const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
-        method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
+        method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify(body)
       },20000);
       if(!r.ok)throw new Error('Active fetch '+r.status);
@@ -681,7 +679,7 @@ async function fetchHubSpot(){
       };
       if(a2)body.after=a2;
       const r=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/deals/search',{
-        method:'POST',headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
+        method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify(body)
       },20000);
       if(!r.ok)throw new Error('Won/Lost live fetch '+r.status);
@@ -696,9 +694,7 @@ async function fetchHubSpot(){
 
     // Fetch owners to map IDs to names
     document.getElementById('hs-connect-status').textContent='Loading owners & meetings…';
-    const ownersResp=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/owners?limit=100',{
-      headers:{'Authorization':'Bearer '+cfg.hsToken}
-    });
+    const ownersResp=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/owners?limit=100',{});
     const ownersData=ownersResp.ok?await ownersResp.json():{results:[]};
     const oMap={};(ownersData.results||[]).forEach(o=>{oMap[o.id]=o.firstName+' '+o.lastName;});
 
@@ -728,7 +724,7 @@ async function fetchHubSpot(){
         if(mAfter)mBody.after=mAfter;
         const er=await fetchT('https://entro-hubspot-proxy.aged-bar-60ee.workers.dev/crm/v3/objects/meetings/search',{
           method:'POST',
-          headers:{'Authorization':'Bearer '+cfg.hsToken,'Content-Type':'application/json'},
+          headers:{'Content-Type':'application/json'},
           body:JSON.stringify(mBody)
         },8000);
         if(!er.ok)break;
@@ -1773,7 +1769,6 @@ function closeSettings(){document.getElementById('modal').classList.remove('open
 function switchTab(name,btn){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('tab-'+name).classList.add('active');}
 
 function populateSettings(){
-  const tok=document.getElementById('hs-token-input');if(cfg.hsToken)tok.value=cfg.hsToken;
   const pc=document.getElementById('pipeline-id-rows');pc.innerHTML='';
   const stageLabels={'2612273595':'Prospecting Lead','2367434189':'Intro Discovery (SQL)','2367434190':'Deep Discovery','2367434191':'Prepare Schedule','2367434192':'Stakeholder Management','2369507813':'Tendering','2369507814':'Live Project','2369507815':'Negotiation','2367434193':'Project Handover/Won','2367434194':'Closed Lost'};
   cfg.pipelineStages.forEach((s,i)=>{pc.innerHTML+=`<div class="s-row"><span class="s-lbl">${stageLabels[s]||'Stage '+(i+1)}</span><input class="s-inp wide" data-pi="${i}" value="${s}" style="color:var(--text3);font-size:11px;"></div>`;});
@@ -1844,27 +1839,36 @@ function saveSettings(){
   cfg.ownerMap=newMap;saveCfg();closeSettings();renderAll();
 }
 
-async function saveHubSpotToken(){
-  const tok=document.getElementById('hs-token-input').value.trim();cfg.hsToken=tok;
-  document.getElementById('hs-connect-status').textContent='Connecting\u2026';document.getElementById('hs-connect-status').style.color='var(--text3)';
-  saveCfg();
+async function reconnectHubSpot(){
+  const statusEl=document.getElementById('hs-connect-status');
+  if(statusEl){statusEl.textContent='Connecting\u2026';statusEl.style.color='var(--text3)';}
   const connectTimer=setTimeout(()=>{
-    if(!isLive){
-      document.getElementById('hs-connect-status').innerHTML='<span style="color:var(--red)">Timed out after 60s. Check token or try again.</span>';
+    if(!isLive&&statusEl){
+      statusEl.innerHTML='<span style="color:var(--red)">Timed out after 60s. The proxy may be unreachable — try again shortly.</span>';
     }
   },60000);
   await fetchAllData();
   clearTimeout(connectTimer);
+  if(!statusEl)return;
   if(isLive){
     const stages=[...new Set(hsDeals.map(d=>d.stage))].slice(0,5).join(', ');
     const specVals=[...new Set(hsDeals.map(d=>d.specStatus).filter(Boolean))].join(', ');
-    document.getElementById('hs-connect-status').innerHTML=
+    statusEl.innerHTML=
       '<span style="color:var(--green)">✓ Connected. '+hsDeals.length+' deals, '+hsMeetings.length+' meetings loaded.</span><br>'+
       '<span style="font-size:10px;color:var(--text3)">Stage IDs found: '+stages+'</span><br>'+
       '<span style="font-size:10px;color:var(--text3)">Spec status values: '+(specVals||'none found — check property name')+'</span>';
+  }else{
+    statusEl.innerHTML='<span style="color:var(--red)">Could not connect. Showing demo data.</span>';
   }
 }
-function clearHubSpotToken(){cfg.hsToken='';document.getElementById('hs-token-input').value='';document.getElementById('hs-connect-status').textContent='Disconnected. Showing demo data.';document.getElementById('hs-connect-status').style.color='var(--text3)';saveCfg();isLive=false;updateStatus();renderAll();}
+function useDemoData(){
+  isLive=false;
+  buildMock();
+  updateStatus();
+  const statusEl=document.getElementById('hs-connect-status');
+  if(statusEl){statusEl.textContent='Showing demo data.';statusEl.style.color='var(--text3)';}
+  renderAll();
+}
 document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeSettings();});
 
 (function init(){
@@ -1899,11 +1903,10 @@ document.getElementById('modal').addEventListener('click',function(e){if(e.targe
   const t=localStorage.getItem('entro_theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');
   document.getElementById('topbar-date').textContent=NOW.toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   loadCfg();updateStatus();renderAll();
-  // Auto-connect if token was previously saved
-  if(cfg.hsToken && cfg.hsToken.startsWith('pat-')){
-    console.log('Auto-connecting to HubSpot...');
-    fetchAllData();
-  }
+  // Always attempt a live connection via the secure server-side proxy —
+  // the credential lives on the server now, not in this browser.
+  console.log('Connecting to HubSpot via proxy...');
+  fetchAllData();
   setInterval(()=>{if(isLive)fetchAllData();},5*60*1000);
 })();
 </script>
