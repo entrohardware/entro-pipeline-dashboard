@@ -470,6 +470,7 @@ const DEF={
 
 let cfg=JSON.parse(JSON.stringify(DEF));
 let activeState='ALL',deepPeriod='week',wonPeriod='ytd',hsDeals=[],hsMeetings=[],isLive=false;
+let lastHsError=null;
 const CHARTS={};
 
 /* ---------- Shared period range helper (used by Deals Won, Deep Discoveries, VS Last Month) ---------- */
@@ -563,8 +564,39 @@ function buildMock(){
   for(let i=0;i<18;i++){
     const owner=owners[Math.floor(Math.random()*owners.length)];
     const won=Math.random()>0.4;
-    deals.push({id:'mw'+i,name:'Project '+i,owner,stage:won?'Project Handover/Won':'Closed Lost',amount:Math.round(rnd(100000,800000)/1000)*1000,estimatedCloseDate:new Date(2026,Math.floor(Math.random()*5),Math.floor(Math.random()*28)+1).toISOString(),specStatus:Math.random()>0.45?'Entro Spec':'Other',createDate:new Date(2026,0,10).toISOString()});
+    // Spread demo close dates across roughly the last 5 months relative to
+    // "today" (not a hardcoded year/month range) so the demo still looks
+    // sensible whenever the dashboard happens to be opened.
+    const dayOffset=Math.floor(rnd(-150,-2));
+    deals.push({id:'mw'+i,name:'Project '+i,owner,stage:won?'2367434193':'2367434194',amount:Math.round(rnd(100000,800000)/1000)*1000,estimatedCloseDate:addD(NOW,dayOffset).toISOString(),specStatus:Math.random()>0.45?'Entro Spec':'Other',createDate:addD(NOW,dayOffset-10).toISOString()});
   }
+  // Guarantee a handful of won/lost deals land in specific recent windows —
+  // this week, this month, last month, last quarter — so every period
+  // filter (WK/MO/QTD/YTD/LW/LM/LQ) and the "VS Last Month" comparison
+  // always has something to show in demo mode, regardless of what day
+  // "today" happens to be.
+  const guaranteed=[
+    {daysAgo:2,  won:true},  // this week
+    {daysAgo:9,  won:false}, // last week
+    {monthsAgo:0,day:10,won:true},  // this month
+    {monthsAgo:0,day:20,won:false}, // this month
+    {monthsAgo:1,day:8, won:true},  // last month
+    {monthsAgo:1,day:18,won:false}, // last month
+    {monthsAgo:2,day:12,won:true},  // this/last quarter
+    {monthsAgo:4,day:14,won:false}, // last quarter
+  ];
+  guaranteed.forEach((g,i)=>{
+    const d=g.daysAgo!==undefined?addD(NOW,-g.daysAgo):new Date(NOW.getFullYear(),NOW.getMonth()-g.monthsAgo,g.day);
+    const owner=owners[i%owners.length];
+    deals.push({
+      id:'mwg'+i,name:'Demo Deal '+(i+1),owner,
+      stage:g.won?'2367434193':'2367434194',
+      amount:Math.round(rnd(100000,500000)/1000)*1000,
+      estimatedCloseDate:d.toISOString(),
+      specStatus:Math.random()>0.45?'Entro Spec':'Other',
+      createDate:new Date(d.getFullYear(),d.getMonth(),1).toISOString()
+    });
+  });
   hsDeals=[...deals];
   const mtgs=[];
   for(let i=0;i<24;i++){
@@ -760,12 +792,12 @@ async function fetchHubSpot(){
       hsMeetings=[];
     }
 
-    isLive=true;updateStatus();
+    isLive=true;lastHsError=null;updateStatus();
 
   }catch(err){
-    console.error(err);isLive=false;updateStatus();
+    console.error(err);isLive=false;lastHsError=err.message||String(err);updateStatus();
     const el=document.getElementById('hs-connect-status');
-    if(el){el.textContent='Error: '+err.message;el.style.color='var(--red)';}
+    if(el){el.textContent='Error: '+lastHsError;el.style.color='var(--red)';}
   }
 }
 
@@ -1858,7 +1890,7 @@ async function reconnectHubSpot(){
       '<span style="font-size:10px;color:var(--text3)">Stage IDs found: '+stages+'</span><br>'+
       '<span style="font-size:10px;color:var(--text3)">Spec status values: '+(specVals||'none found — check property name')+'</span>';
   }else{
-    statusEl.innerHTML='<span style="color:var(--red)">Could not connect. Showing demo data.</span>';
+    statusEl.innerHTML='<span style="color:var(--red)">Could not connect'+(lastHsError?': '+lastHsError:'')+'. Showing demo data.</span>';
   }
 }
 function useDemoData(){
