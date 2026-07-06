@@ -506,13 +506,27 @@ function getPeriodRange(period){
 
 /* ---------- LOGIN ---------- */
 const APP_PASSWORD='Entro2026!';
+function revealApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-main').style.display='flex';
+  // The dashboard renders in the background while hidden behind the login
+  // screen, so any Chart.js canvases (e.g. the forecast chart) get laid out
+  // at zero size. Force a proper resize/redraw now that the container is
+  // actually visible.
+  requestAnimationFrame(()=>{
+    if(CHARTS.forecast){
+      CHARTS.forecast.resize();
+      CHARTS.forecast.update('none');
+    }
+    window.dispatchEvent(new Event('resize'));
+  });
+}
 function attemptLogin(){
   const inp=document.getElementById('login-password');
   const err=document.getElementById('login-error');
   if(inp.value===APP_PASSWORD){
     try{sessionStorage.setItem('entro_unlocked','1');}catch(e){}
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app-main').style.display='flex';
+    revealApp();
     err.textContent='';
   }else{
     err.textContent='Incorrect password — try again.';
@@ -530,8 +544,7 @@ function attemptLogin(){
     let unlocked=false;
     try{unlocked=sessionStorage.getItem('entro_unlocked')==='1';}catch(e){}
     if(unlocked){
-      document.getElementById('login-screen').style.display='none';
-      document.getElementById('app-main').style.display='flex';
+      revealApp();
     }
   });
 })();
@@ -1478,19 +1491,16 @@ function drawGaugeColour(id,value,max,target,col,sublabel,yoy,lastMonth){
   let yoyH='';
   if(yoy!==undefined&&yoy!==null){
     const delta=value-yoy;const up=delta>=0;
+    let lmCell='';
+    if(lastMonth!==undefined&&lastMonth!==null){
+      const delta2=value-lastMonth;const up2=delta2>=0;
+      lmCell='<div class="yoy-cell"><div class="yoy-lbl">VS Last Month</div><div class="yoy-delta '+(up2?'d-up':'d-dn')+'">'+(up2?'&#9650;':'&#9660;')+' '+(up2?'+':'')+Math.round(delta2)+'%</div></div>';
+    }
     yoyH='<div class="yoy-row">'+
       '<div class="yoy-cell"><div class="yoy-lbl">YTD 2026</div><div class="yoy-num" style="color:'+col+'">'+dispVal+'</div></div>'+
       '<div class="yoy-cell"><div class="yoy-lbl">YTD 2025</div><div class="yoy-num">'+yoy+'%</div></div>'+
+      lmCell+
       '<div class="yoy-cell"><div class="yoy-lbl">vs 2025</div><div class="yoy-delta '+(up?'d-up':'d-dn')+'">'+(up?'&#9650;':'&#9660;')+' '+(up?'+':'')+Math.round(delta)+'%</div></div>'+
-      '</div>';
-  }
-  let lmH='';
-  if(lastMonth!==undefined&&lastMonth!==null){
-    const delta2=value-lastMonth;const up2=delta2>=0;
-    lmH='<div class="yoy-row">'+
-      '<div class="yoy-cell"><div class="yoy-lbl">Current</div><div class="yoy-num" style="color:'+col+'">'+dispVal+'</div></div>'+
-      '<div class="yoy-cell"><div class="yoy-lbl">Last Month</div><div class="yoy-num">'+lastMonth+'%</div></div>'+
-      '<div class="yoy-cell"><div class="yoy-lbl">vs Last Month</div><div class="yoy-delta '+(up2?'d-up':'d-dn')+'">'+(up2?'&#9650;':'&#9660;')+' '+(up2?'+':'')+Math.round(delta2)+'%</div></div>'+
       '</div>';
   }
   document.getElementById(id).innerHTML=
@@ -1510,7 +1520,7 @@ function drawGaugeColour(id,value,max,target,col,sublabel,yoy,lastMonth){
     '</div>'+
     '</div>'+
     '<div class="gauge-meta"><span style="color:var(--text3)">Target</span> <span class="g-chip" style="color:var(--accent2);border-color:var(--accent)">'+target+'%</span><span class="g-note"> &mdash; '+Math.round(fillPct*100)+'% of target</span></div>'+
-    yoyH+lmH;
+    yoyH;
 }
 function drawGauge(id,value,max,sublabel,yoy,showPct){
   const pct=max>0?Math.min(1.05,value/max):0;
